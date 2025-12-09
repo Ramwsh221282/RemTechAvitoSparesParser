@@ -1,6 +1,20 @@
-var builder = WebApplication.CreateBuilder(args);
-var app = builder.Build();
+using ParsingSDK;
+using RemTech.SharedKernel.Infrastructure;
 
-app.MapGet("/", () => "Hello World!");
+WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
+
+builder.Services.RegisterParserDependencies();
+builder.Services.RegisterSharedInfrastructure();
+
+WebApplication app = builder.Build();
+
 
 app.Run();
+
+namespace AvitoSparesParser
+{
+    public partial class Program
+    {
+        
+    }
+}
