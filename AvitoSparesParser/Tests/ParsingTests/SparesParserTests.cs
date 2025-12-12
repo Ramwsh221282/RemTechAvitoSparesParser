@@ -1,15 +1,19 @@
 ﻿using AvitoFirewallBypass;
+
+using AvitoSparesParser.CatalogueParsing;
+using AvitoSparesParser.Common;
+using AvitoSparesParser.ConcreteItemParsing.AvitoSpares;
+using AvitoSparesParser.ConcreteItemParsing.AvitoSpares.Extensions;
+using AvitoSparesParser.ConcreteItemParsing.AvitoSpareSinking;
+using AvitoSparesParser.ConcreteItemParsing.AvitoWebPages;
+using AvitoSparesParser.ConcreteItemParsing.AvitoWebPages.Extensions;
+
 using Microsoft.Extensions.DependencyInjection;
+
 using ParsingSDK.Parsing;
 using ParsingSDK.TextProcessing;
+
 using PuppeteerSharp;
-using Tests.ParsingTests.CatalogueParsing;
-using Tests.ParsingTests.Common;
-using Tests.ParsingTests.ConcreteItemParsing.AvitoSpares;
-using Tests.ParsingTests.ConcreteItemParsing.AvitoSpares.Extensions;
-using Tests.ParsingTests.ConcreteItemParsing.AvitoSpareSinking;
-using Tests.ParsingTests.ConcreteItemParsing.AvitoWebPages;
-using Tests.ParsingTests.ConcreteItemParsing.AvitoWebPages.Extensions;
 
 namespace Tests.ParsingTests;
 
@@ -35,17 +39,17 @@ public sealed class SparesParserTests(SparesParsingFixture fixture) : IClassFixt
         BrowserFactory browsers = _sp.GetRequiredService<BrowserFactory>();
         AvitoBypassFactory bypasses = _sp.GetRequiredService<AvitoBypassFactory>();
         TextTransformerBuilder transformerBuilder = _sp.GetRequiredService<TextTransformerBuilder>();
-        
+
         ITextTransformer transformer = transformerBuilder
             .UsePunctuationCleaner()
             .UseNewLinesCleaner()
             .UseEmojiCleaner()
             .UseSpacesCleaner()
             .Build();
-        
+
         AvitoCataloguePage page = AvitoCataloguePage.New(url);
         AvitoCatalogueSpare[] items = await page.SparesArray(browsers, bypasses);
-        
+
         AvitoSpareRequirements<AvitoSpareWebPage> reqs = new(
           Prices: p => p.ExtractPriceInformation(),
           Texts: [
@@ -54,19 +58,19 @@ public sealed class SparesParserTests(SparesParsingFixture fixture) : IClassFixt
               p => p.ExtractDescriptionPartsToTextList()
             ]
         );
-        
+
         string resultsPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "results");
         Directory.CreateDirectory(resultsPath);
-        
+
         IBrowser browser = await browsers.ProvideBrowser(headless: false);
-        
+
         Func<AvitoSpare, string> sparePathFn = sp => Path.Combine(resultsPath, $"{Guid.NewGuid()}.txt");
         Func<AvitoCatalogueSpare, AvitoSpareConstructionDependencies> depFn = spare => new(spare, browser, bypasses);
-        
-         Maybe<AvitoSpare>[] spares = await items.MapArrayAsync(i => AvitoSpare.TryExtract(depFn(i), reqs));
-         AvitoSpare[] successSpares = [..spares.Where(s => s.HasValue).Select(s => s.Value)];
+
+        Maybe<AvitoSpare>[] spares = await items.MapArrayAsync(i => AvitoSpare.TryExtract(depFn(i), reqs));
+        AvitoSpare[] successSpares = [.. spares.Where(s => s.HasValue).Select(s => s.Value)];
         await browser.DestroyAsync();
-         Assert.NotEmpty(successSpares);
+        Assert.NotEmpty(successSpares);
         await successSpares.InvokeForEach(s => s.Texts.InvokeForEach(t => new AsyncSpareTextFile(transformer.TransformText(t), sparePathFn(s)).Write()));
     }
 }

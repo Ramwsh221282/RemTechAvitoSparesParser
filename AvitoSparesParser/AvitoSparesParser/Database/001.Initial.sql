@@ -24,3 +24,9 @@ CREATE TABLE IF NOT EXISTS avito_spares_parser.processing_parser_links
     retry_count integer not null,
     FOREIGN KEY (parser_id) REFERENCES avito_spares_parser.processing_parsers (id) ON DELETE CASCADE
 );
+
+CREATE TABLE IF NOT EXISTS avito_spares_parser.subscriptions
+(
+    id uuid primary key,
+    created timestamptz not null
+);

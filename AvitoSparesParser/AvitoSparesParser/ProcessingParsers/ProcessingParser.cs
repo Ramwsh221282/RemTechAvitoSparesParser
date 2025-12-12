@@ -10,7 +10,7 @@ public sealed record ProcessingParser(
     Guid Id,
     string Domain,
     string Type,
-    DateTime Entered
+    DateTime Entered,
     DateTime? Finished
 );
 
@@ -45,10 +45,10 @@ public static class ProcessingParserStoringExtensions
             }
 
             if (query.OnlyFetched) filters.Add("catalogue_fetched is true");
-            if (query.OnlyNotFetched) filters.Add("catalogue_fetched is false");                     
+            if (query.OnlyNotFetched) filters.Add("catalogue_fetched is false");
 
             return filters.Count == 0 ? (parameters, string.Empty) : (parameters, "WHERE " + string.Join(" AND ", filters));
-        }        
+        }
 
         private string LockClause() => query.WithLock ? "FOR UPDATE" : string.Empty;
     }
@@ -83,10 +83,10 @@ public static class ProcessingParserStoringExtensions
                 Guid parser_id = reader.GetGuid(reader.GetOrdinal("parser_id"));
                 string url = reader.GetString(reader.GetOrdinal("url"));
                 bool catalogue_fetched = reader.GetBoolean(reader.GetOrdinal("catalogue_fetched"));
-                int retry_count = reader.GetInt32(reader.GetOrdinal("retry_count"));                
-                links.Add(new ProcessingParserLink(id, parser_id, url, catalogue_fetched, retry_count));                
+                int retry_count = reader.GetInt32(reader.GetOrdinal("retry_count"));
+                links.Add(new ProcessingParserLink(id, parser_id, url, catalogue_fetched, retry_count));
             }
-            
+
             return [.. links];
         }
     }
@@ -150,7 +150,7 @@ public static class ProcessingParserStoringExtensions
             type = parser.Type,
             finished = parser.Finished,
             entered = parser.Entered,
-        };        
+        };
     }
 
     extension(ProcessingParserLink link)
@@ -163,5 +163,5 @@ public static class ProcessingParserStoringExtensions
             catalogue_fetched = link.CatalogueFetched,
             retry_count = link.RetryCount,
         };
-    }    
+    }
 }

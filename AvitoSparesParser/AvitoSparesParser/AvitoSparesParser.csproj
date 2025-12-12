@@ -13,4 +13,8 @@
       <PackageReference Include="RemTech.SharedKernel.Infrastructure" Version="1.0.3" />
     </ItemGroup>
 
+    <ItemGroup>
+      <EmbeddedResource Include="Database\*.sql"></EmbeddedResource>
+    </ItemGroup>
+
 </Project>
