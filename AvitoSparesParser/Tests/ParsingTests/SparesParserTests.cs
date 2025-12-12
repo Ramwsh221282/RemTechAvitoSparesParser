@@ -69,38 +69,4 @@ public sealed class SparesParserTests(SparesParsingFixture fixture) : IClassFixt
          Assert.NotEmpty(successSpares);
         await successSpares.InvokeForEach(s => s.Texts.InvokeForEach(t => new AsyncSpareTextFile(transformer.TransformText(t), sparePathFn(s)).Write()));
     }
-
-    [Fact]
-    private void Write_Texts()
-    {
-        string resultsPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "results");
-
-        using StreamReader reader = File.OpenText("Вся номенклатура.txt");
-        int limit = 20;
-        int counter = 0;
-        while (!reader.EndOfStream)
-        {
-            if (counter > limit)
-                break;
-            
-            string? line = reader.ReadLine();
-            if (string.IsNullOrWhiteSpace(line)) continue;
-            if (line.Contains("\t"))
-            {
-                string saveFileName1 = Guid.NewGuid() + ".txt";
-                string saveFileName2 = Guid.NewGuid() + ".txt";
-                string saveFilePath1 = Path.Combine(resultsPath, saveFileName1);
-                string saveFilePath2 = Path.Combine(resultsPath, saveFileName2);
-                string[] contents = line.Split("\t");
-                using StreamWriter sw1 = File.CreateText(saveFilePath1);
-                using StreamWriter sw2 = File.CreateText(saveFilePath2);
-                sw1.WriteLine(contents[0].Trim());
-                sw2.WriteLine(contents[1].Trim());
-            }
-
-            counter++;
-        }
-
-        int a = 0;
-    }
 }
