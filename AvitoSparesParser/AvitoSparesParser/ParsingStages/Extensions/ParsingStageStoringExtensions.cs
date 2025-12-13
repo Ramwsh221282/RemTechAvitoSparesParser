@@ -9,12 +9,12 @@ using RemTech.SharedKernel.Infrastructure.NpgSql;
 namespace AvitoSparesParser.ParsingStages.Extensions;
 
 public static class ParsingStageStoringExtensions
-{    
+{
     extension(ParsingStage)
     {
         public static async Task<Maybe<ParsingStage>> GetStage(
-            NpgSqlSession session, 
-            ParsingStageQuery query, 
+            NpgSqlSession session,
+            ParsingStageQuery query,
             CancellationToken ct = default)
         {
             (DynamicParameters parameters, string filterSql) = query.WhereClause();
@@ -26,11 +26,11 @@ public static class ParsingStageStoringExtensions
             {lockClause}
             """;
             CommandDefinition command = new(sql, parameters, transaction: session.Transaction, cancellationToken: ct);
-            using IDataReader reader = await session.ExecuteReader(command, ct);            
+            using IDataReader reader = await session.ExecuteReader(command, ct);
             return reader.Read() switch
             {
-              false => Maybe<ParsingStage>.None(),
-              true => Maybe<ParsingStage>.Some(new ParsingStage(reader.GetGuid(0), reader.GetString(1))),
+                false => Maybe<ParsingStage>.None(),
+                true => Maybe<ParsingStage>.Some(new ParsingStage(reader.GetGuid(0), reader.GetString(1))),
             };
         }
     }
@@ -43,13 +43,13 @@ public static class ParsingStageStoringExtensions
             DynamicParameters parameters = new();
             if (query.Id.HasValue)
             {
-                filters.Add($"id = @id"); 
+                filters.Add($"id = @id");
                 parameters.Add("id", query.Id.Value);
-            }            
+            }
 
             if (query.Name is not null)
             {
-                filters.Add($"name = @name"); 
+                filters.Add($"name = @name");
                 parameters.Add("name", query.Name);
             }
 
@@ -70,6 +70,17 @@ public static class ParsingStageStoringExtensions
             VALUES (@id, @name)
             ON CONFLICT(id) 
             DO UPDATE SET name = @name
+            """;
+            CommandDefinition command = session.FormCommand(sql, stage.ExtractParameters(), ct: ct);
+            await session.Execute(command);
+        }
+
+        public async Task Update(NpgSqlSession session, CancellationToken ct = default)
+        {
+            const string sql = $"""
+            UPDATE avito_spares_parser.stages
+            SET name = @name
+            WHERE id = @id
             """;
             CommandDefinition command = session.FormCommand(sql, stage.ExtractParameters(), ct: ct);
             await session.Execute(command);

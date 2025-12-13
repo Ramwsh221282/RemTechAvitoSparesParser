@@ -35,10 +35,11 @@ public sealed class ParserSubscriptionTestFixture : WebApplicationFactory<AvitoS
         base.ConfigureWebHost(builder);
 
         builder.ConfigureServices(s =>
-        {            
+        {
+            s.ReconfigureConfigurationProvider();
             s.DontUseQuartzServices();
             s.ReconfigureRabbitMqOptions(_rabbitMqContainer);
-            s.ReconfigurePostgreSqlOptions(_dbContainer);                       
+            s.ReconfigurePostgreSqlOptions(_dbContainer);
             s.AddTransient<FakeParserSubscriptionConfirmedPublisher>();
             s.AddHostedService<FakeParserSubscriptionListener>();
         });

@@ -9,19 +9,19 @@ using RemTech.SharedKernel.Infrastructure.NpgSql;
 
 namespace AvitoSparesParser.ParserSubscription;
 
-public sealed record SubscriptionRecord(Guid Id, DateTime Created);
+public sealed record ParserSubscribtion(Guid Id, DateTime Created);
 
 public static class SubscriptionRecordCreation
 {
-    extension(SubscriptionRecord record)
+    extension(ParserSubscribtion record)
     {
-        public static SubscriptionRecord FromDeliverEventArgs(BasicDeliverEventArgs ea)
+        public static ParserSubscribtion FromDeliverEventArgs(BasicDeliverEventArgs ea)
         {
             byte[] body = ea.Body.ToArray();
             string json = Encoding.UTF8.GetString(body);
             using JsonDocument document = JsonDocument.Parse(json);
             Guid id = document.RootElement.GetProperty("id").GetGuid();
-            return new SubscriptionRecord(id, DateTime.UtcNow);
+            return new ParserSubscribtion(id, DateTime.UtcNow);
         }
     }
 }
@@ -33,7 +33,7 @@ public static class SubscriptionRecordCreation
 // );
 public static class SubscriptionRecordStoringImplementation
 {
-    extension(SubscriptionRecord)
+    extension(ParserSubscribtion)
     {
         public static async Task<bool> Persisted(NpgSqlSession session, CancellationToken ct = default)
         {
@@ -43,7 +43,7 @@ public static class SubscriptionRecordStoringImplementation
         }
     }
 
-    extension(SubscriptionRecord record)
+    extension(ParserSubscribtion record)
     {
         public async Task Persist(NpgSqlSession session, CancellationToken ct = default)
         {

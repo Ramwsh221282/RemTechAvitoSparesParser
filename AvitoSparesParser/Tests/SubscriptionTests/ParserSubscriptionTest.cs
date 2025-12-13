@@ -1,6 +1,7 @@
 using AvitoSparesParser.ParserSubscription;
 
 using Microsoft.Extensions.DependencyInjection;
+using ParserSubscriber;
 
 using RemTech.SharedKernel.Infrastructure.NpgSql;
 
@@ -13,7 +14,7 @@ public sealed class ParserSubscriptionTest(ParserSubscriptionTestFixture fixture
     [Fact]
     private async Task Test_Parser_Subscribed()
     {
-        ParserSubscriptionProcess process = _sp.GetRequiredService<ParserSubscriptionProcess>();
+        IParserSubscriber process = _sp.GetRequiredService<IParserSubscriber>();
         await process.Subscribe();
         bool sessionCreated = await EnsureSubscriptionPersisted();
         Assert.True(sessionCreated);
@@ -23,6 +24,6 @@ public sealed class ParserSubscriptionTest(ParserSubscriptionTestFixture fixture
     {
         await using AsyncServiceScope scope = _sp.CreateAsyncScope();
         await using NpgSqlSession session = scope.ServiceProvider.GetRequiredService<NpgSqlSession>();
-        return await SubscriptionRecord.Persisted(session);
+        return await ParserSubscribtion.Persisted(session);
     }
 }

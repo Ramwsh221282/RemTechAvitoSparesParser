@@ -1,5 +1,4 @@
 using AvitoSparesParser.CatalogueParsing;
-using AvitoSparesParser.CatalogueParsing.Extensions;
 using AvitoSparesParser.ParserProcessStarting;
 using AvitoSparesParser.ParserProcessStarting.Extensions;
 using AvitoSparesParser.ParsingStages.Extensions;
@@ -16,7 +15,7 @@ public static class CataloguePagesCollectingProcess
 {
     extension(ParserStageProcess)
     {
-        public static ParserStageProcess Process => async (deps, ct) =>
+        public static ParserStageProcess Pagination => async (deps, ct) =>
         {
             Serilog.ILogger logger = deps.Logger.ForContext<ParserStageProcess>();
             await using NpgSqlSession session = new(deps.NpgSql);
@@ -32,9 +31,15 @@ public static class CataloguePagesCollectingProcess
                 WithLock: true
                 );
             ProcessingParserLink[] links = await IEnumerable<ProcessingParserLink>.QueryMany(session, linksQuery, ct);
-            if (links.Length == 0) return;
+            if (links.Length == 0)
+            {
+                ParsingStage catalogueStage = stage.Value.ToCatalogueStage();
+                await catalogueStage.Update(session, ct);
+                await session.UnsafeCommit(ct);
+                return;
+            }
 
-            IBrowser browser = await deps.Browsers.ProvideBrowser();
+            IBrowser browser = await deps.Browsers.ProvideBrowser(headless: false);
 
             for (int i = 0; i < links.Length; i++)
             {
@@ -45,7 +50,7 @@ public static class CataloguePagesCollectingProcess
                 {
                     await (await browser.GetPage()).NavigatePage(link.Url);
                     if (!await deps.Bypasses.Create(await browser.GetPage()).Bypass())
-                        throw new InvalidOperationException("Bypass failed.");                    
+                        throw new InvalidOperationException("Bypass failed.");
                     await (await browser.GetPage()).ScrollBottom();
                     IElementHandle[] paginationElements = await GetPaginationElements(await browser.GetPage());
                     int currentPage = await GetCurrentPageFromPaginationContainer(paginationElements);
@@ -55,7 +60,7 @@ public static class CataloguePagesCollectingProcess
                     await pages.AddMany(session);
                     link.Marker.MarkProcessed();
                 }
-                catch(Exception ex)
+                catch (Exception ex)
                 {
                     deps.Logger.Error(ex, "Error for processing link url: {Url}", link.Url);
                     link.Counter.Increase();
@@ -67,12 +72,13 @@ public static class CataloguePagesCollectingProcess
             }
 
             await browser.DestroyAsync();
-            
+            await links.UpdateMany(session);
+
             try
             {
                 await session.UnsafeCommit(ct);
             }
-            catch(Exception ex)
+            catch (Exception ex)
             {
                 logger.Error(ex, "Error at committing transaction.");
             }
@@ -130,13 +136,13 @@ public static class CataloguePagesCollectingProcess
             int pageCounter = currentPage;
             List<AvitoCataloguePage> pages = new(pageCounter + 1);
             while (pageCounter <= maxPage)
-            {                
-                string urlValue = $"{originUrl}?page={pageCounter}";   
+            {
+                string urlValue = $"{originUrl}?page={pageCounter}";
                 AvitoCataloguePage page = AvitoCataloguePage.New(urlValue);
                 pages.Add(page);
                 pageCounter++;
             }
-        
+
             return [.. pages];
         }
     }

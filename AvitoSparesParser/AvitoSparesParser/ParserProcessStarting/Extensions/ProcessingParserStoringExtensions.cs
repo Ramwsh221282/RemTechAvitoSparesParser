@@ -21,8 +21,8 @@ public static class ProcessingParserStoringExtensions
                 parameters.Add("@retryThreshold", query.RetryCountThreshold.Value, DbType.Int32);
             }
 
-            if (query.OnlyFetched) filters.Add("catalogue_fetched is true");
-            if (query.OnlyNotFetched) filters.Add("catalogue_fetched is false");
+            if (query.OnlyFetched) filters.Add("processed is true");
+            if (query.OnlyNotFetched) filters.Add("processed is false");
 
             return filters.Count == 0 ? (parameters, string.Empty) : (parameters, "WHERE " + string.Join(" AND ", filters));
         }
@@ -45,7 +45,7 @@ public static class ProcessingParserStoringExtensions
             id as id,
             parser_id as parser_id,
             url as url,
-            catalogue_fetched as catalogue_fetched,
+            processed as processed,
             retry_count as retry_count
             FROM avito_spares_parser.processing_parser_links
             {filterSql}
@@ -62,10 +62,10 @@ public static class ProcessingParserStoringExtensions
                 bool processed = reader.GetBoolean(reader.GetOrdinal("processed"));
                 int retry_count = reader.GetInt32(reader.GetOrdinal("retry_count"));
                 links.Add(new ProcessingParserLink(
-                    id, 
-                    parser_id, 
-                    url, 
-                    new Common.RetryCounter(retry_count), 
+                    id,
+                    parser_id,
+                    url,
+                    new Common.RetryCounter(retry_count),
                     new Common.ProcessedMarker(processed)
                 ));
             }
@@ -85,7 +85,7 @@ public static class ProcessingParserStoringExtensions
                 retry_count = @retry_count
             WHERE id = @id
             """;
-            IEnumerable<object> parameters = links.Select(link => link.ExtractParameters());            
+            IEnumerable<object> parameters = links.Select(link => link.ExtractParameters());
             await session.ExecuteBulk(sql, parameters);
         }
 
@@ -97,7 +97,7 @@ public static class ProcessingParserStoringExtensions
             VALUES
             (@id, @parser_id, @url, @processed, @retry_count)
             """;
-            IEnumerable<object> parameters = links.Select(link => link.ExtractParameters());            
+            IEnumerable<object> parameters = links.Select(link => link.ExtractParameters());
             await session.ExecuteBulk(sql, parameters);
         }
     }
