@@ -59,9 +59,15 @@ public static class ProcessingParserStoringExtensions
                 Guid id = reader.GetGuid(reader.GetOrdinal("id"));
                 Guid parser_id = reader.GetGuid(reader.GetOrdinal("parser_id"));
                 string url = reader.GetString(reader.GetOrdinal("url"));
-                bool catalogue_fetched = reader.GetBoolean(reader.GetOrdinal("catalogue_fetched"));
+                bool processed = reader.GetBoolean(reader.GetOrdinal("processed"));
                 int retry_count = reader.GetInt32(reader.GetOrdinal("retry_count"));
-                links.Add(new ProcessingParserLink(id, parser_id, url, catalogue_fetched, retry_count));
+                links.Add(new ProcessingParserLink(
+                    id, 
+                    parser_id, 
+                    url, 
+                    new Common.RetryCounter(retry_count), 
+                    new Common.ProcessedMarker(processed)
+                ));
             }
 
             return [.. links];
@@ -75,7 +81,7 @@ public static class ProcessingParserStoringExtensions
             const string sql = """
             UPDATE avito_spares_parser.processing_parser_links
             SET
-                catalogue_fetched = @catalogue_fetched,
+                processed = @processed,
                 retry_count = @retry_count
             WHERE id = @id
             """;
@@ -87,9 +93,9 @@ public static class ProcessingParserStoringExtensions
         {
             const string sql = """
             INSERT INTO avito_spares_parser.processing_parser_links
-            (id, parser_id, url, catalogue_fetched, retry_count)
+            (id, parser_id, url, processed, retry_count)
             VALUES
-            (@id, @parser_id, @url, @catalogue_fetched, @retry_count)
+            (@id, @parser_id, @url, @processed, @retry_count)
             """;
             IEnumerable<object> parameters = links.Select(link => link.ExtractParameters());            
             await session.ExecuteBulk(sql, parameters);
@@ -135,8 +141,8 @@ public static class ProcessingParserStoringExtensions
             id = link.Id,
             parser_id = link.ParserId,
             url = link.Url,
-            catalogue_fetched = link.CatalogueFetched,
-            retry_count = link.RetryCount,
+            processed = link.Marker.Processed,
+            retry_count = link.Counter.Value,
         };
     }
 }

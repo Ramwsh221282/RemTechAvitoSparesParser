@@ -1,6 +1,8 @@
 using System.Text;
 using System.Text.Json;
 
+using AvitoSparesParser.Common;
+
 using RabbitMQ.Client.Events;
 
 namespace AvitoSparesParser.ParserProcessStarting;
@@ -28,7 +30,14 @@ public static class ProcessingParserConstruction
             Guid id = element.GetProperty("id").GetGuid();
             Guid parserId = element.GetProperty("parser_id").GetGuid();
             string url = element.GetProperty("url").GetString()!;
-            ProcessingParserLink link = new(id, parserId, url, CatalogueFetched: false, RetryCount: 0);
+            
+            ProcessingParserLink link = new(
+                id, 
+                parserId, 
+                url, 
+                Marker: ProcessedMarker.Unprocessed(),
+                Counter: RetryCounter.New());
+
             return link;
         }
     }

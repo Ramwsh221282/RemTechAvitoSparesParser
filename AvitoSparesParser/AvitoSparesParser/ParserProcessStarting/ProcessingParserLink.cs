@@ -1,9 +1,11 @@
+using AvitoSparesParser.Common;
+
 namespace AvitoSparesParser.ParserProcessStarting;
 
 public sealed record ProcessingParserLink(
     Guid Id,
-    Guid ParserId,    
+    Guid ParserId,
     string Url,
-    bool CatalogueFetched,
-    int RetryCount
-);
+    RetryCounter Counter,
+    ProcessedMarker Marker
+) : IHasRetryCounter, IHasProcessedMarker;

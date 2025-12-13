@@ -1,6 +1,7 @@
 ﻿using AvitoFirewallBypass;
 
 using AvitoSparesParser.CatalogueParsing;
+using AvitoSparesParser.CatalogueParsing.Extensions;
 using AvitoSparesParser.Common;
 using AvitoSparesParser.ConcreteItemParsing.AvitoWebPages;
 

@@ -20,7 +20,7 @@ CREATE TABLE IF NOT EXISTS avito_spares_parser.processing_parser_links
     id uuid primary key,
     parser_id uuid not null,
     url text not null,
-    catalogue_fetched boolean not null,
+    processed boolean not null,
     retry_count integer not null,
     FOREIGN KEY (parser_id) REFERENCES avito_spares_parser.processing_parsers (id) ON DELETE CASCADE
 );
@@ -29,4 +29,12 @@ CREATE TABLE IF NOT EXISTS avito_spares_parser.subscriptions
 (
     id uuid primary key,
     created timestamptz not null
+);
+
+CREATE TABLE IF NOT EXISTS avito_spares_parser.catalogue_pages
+(
+    id uuid primary key,
+    url text not null,
+    processed boolean not null,
+    retry_count integer not null
 );
