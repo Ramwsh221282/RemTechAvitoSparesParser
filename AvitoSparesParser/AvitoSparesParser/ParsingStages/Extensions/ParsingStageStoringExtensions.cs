@@ -68,7 +68,8 @@ public static class ParsingStageStoringExtensions
             const string sql = """
             INSERT INTO avito_spares_parser.stages(id, name)
             VALUES (@id, @name)
-            ON CONFLICT DO UPDATE SET name = @name
+            ON CONFLICT(id) 
+            DO UPDATE SET name = @name
             """;
             CommandDefinition command = session.FormCommand(sql, stage.ExtractParameters(), ct: ct);
             await session.Execute(command);

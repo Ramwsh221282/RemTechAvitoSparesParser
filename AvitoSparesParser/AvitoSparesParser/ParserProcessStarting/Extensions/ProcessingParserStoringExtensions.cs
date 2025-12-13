@@ -4,30 +4,7 @@ using Dapper;
 
 using RemTech.SharedKernel.Infrastructure.NpgSql;
 
-namespace AvitoSparesParser.ProcessingParsers;
-
-public sealed record ProcessingParser(
-    Guid Id,
-    string Domain,
-    string Type,
-    DateTime Entered,
-    DateTime? Finished
-);
-
-public sealed record ProcessingParserLink(
-    Guid Id,
-    Guid ParserId,
-    string Url,
-    bool CatalogueFetched,
-    int RetryCount
-);
-
-public sealed record ProcessingParserLinkQuery(
-    bool OnlyFetched = false,
-    bool OnlyNotFetched = false,
-    int? RetryCountThreshold = null,
-    bool WithLock = false
-);
+namespace AvitoSparesParser.ParserProcessStarting.Extensions;
 
 public static class ProcessingParserStoringExtensions
 {
@@ -102,9 +79,8 @@ public static class ProcessingParserStoringExtensions
                 retry_count = @retry_count
             WHERE id = @id
             """;
-            IEnumerable<object> parameters = links.Select(link => link.ExtractParameters());
-            CommandDefinition command = new(sql, parameters, transaction: session.Transaction);
-            await session.Execute(command);
+            IEnumerable<object> parameters = links.Select(link => link.ExtractParameters());            
+            await session.ExecuteBulk(sql, parameters);
         }
 
         public async Task AddMany(NpgSqlSession session)
@@ -115,9 +91,8 @@ public static class ProcessingParserStoringExtensions
             VALUES
             (@id, @parser_id, @url, @catalogue_fetched, @retry_count)
             """;
-            IEnumerable<object> parameters = links.Select(link => link.ExtractParameters());
-            CommandDefinition command = new(sql, parameters, transaction: session.Transaction);
-            await session.Execute(command);
+            IEnumerable<object> parameters = links.Select(link => link.ExtractParameters());            
+            await session.ExecuteBulk(sql, parameters);
         }
     }
 
