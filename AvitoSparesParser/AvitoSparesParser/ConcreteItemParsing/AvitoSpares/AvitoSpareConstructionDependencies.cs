@@ -2,7 +2,7 @@
 using AvitoSparesParser.CatalogueParsing;
 using PuppeteerSharp;
 
-namespace AvitoSparesParser.ConcreteItemParsing.AvitoSpares.Extensions;
+namespace AvitoSparesParser.ConcreteItemParsing.AvitoSpares;
 
 public sealed record AvitoSpareConstructionDependencies(
     AvitoCatalogueSpare CatalogueSpare,

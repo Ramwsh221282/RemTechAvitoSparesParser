@@ -1,9 +1,6 @@
 using System.Data;
-
 using Dapper;
-
 using ParsingSDK.Parsing;
-
 using RemTech.SharedKernel.Infrastructure.NpgSql;
 
 namespace AvitoSparesParser.ParsingStages.Extensions;

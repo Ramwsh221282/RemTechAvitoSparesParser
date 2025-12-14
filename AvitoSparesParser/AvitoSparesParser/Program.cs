@@ -1,12 +1,10 @@
 using AvitoFirewallBypass;
-
 using AvitoSparesParser.Database;
 using AvitoSparesParser.ParserProcessStarting.BackgroundTasks;
 using AvitoSparesParser.ParserSubscription;
 using AvitoSparesParser.ParsingStages;
-
 using ParsingSDK;
-
+using ParsingSDK.TextProcessing;
 using RemTech.SharedKernel.Infrastructure;
 
 WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
@@ -18,6 +16,7 @@ builder.Services.RegisterDatabaseUpgrader();
 builder.Services.RegisterParserSubscriptionProcess();
 builder.Services.RegisterStartParserListener();
 builder.Services.RegisterParserWorkStages();
+builder.Services.RegisterTextTransformerBuilder();
 builder.Services.AddQuartzServices();
 
 WebApplication app = builder.Build();

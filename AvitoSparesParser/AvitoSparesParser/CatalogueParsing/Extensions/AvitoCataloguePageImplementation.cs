@@ -1,13 +1,9 @@
 ﻿using AvitoFirewallBypass;
-
-using AvitoSparesParser.CatalogueParsing;
 using AvitoSparesParser.Common;
-
 using ParsingSDK.Parsing;
-
 using PuppeteerSharp;
 
-namespace AvitoSparesParser.CatalogueParsing;
+namespace AvitoSparesParser.CatalogueParsing.Extensions;
 
 public static class AvitoCataloguePageImplementation
 {
@@ -21,16 +17,18 @@ public static class AvitoCataloguePageImplementation
             try
             {
                 IPage browserPage = await browser.GetPage();
-                await browserPage.NavigatePage(page.Url);
+                await browserPage.QuickNavigate(page.Url);
+                // await browserPage.NavigatePage(page.Url);
                 if (!await bypasses.Create(browserPage).Bypass()) return [];
                 await browserPage.ScrollBottom();
-                
+
                 IElementHandle[] webElements = await browserPage.GetElements();
                 List<AvitoCatalogueSpare> results = new(webElements.Length);
-                
+
                 await foreach (AvitoCatalogueSpare result in webElements.ExtractCatalogueSpares(browserPage))
                     results.Add(result);
-                return results.ToArray();
+
+                return [.. results];
             }
             finally
             {
@@ -43,6 +41,7 @@ public static class AvitoCataloguePageImplementation
     {
         private async IAsyncEnumerable<AvitoCatalogueSpare> ExtractCatalogueSpares(IPage page)
         {
+            int retryAmount = 5;
             int length = webElements.Length;
             for (int i = 0; i < length; i++)
             {
@@ -50,23 +49,23 @@ public static class AvitoCataloguePageImplementation
                 Maybe<string> itemId = await webElement.GetAttribute("data-item-id");
                 if (!itemId.HasValue) continue;
 
-                Maybe<IElementHandle> titleContainer = await webElement.GetElementRetriable("div.iva-item-listTopBlock-n6Rva");
+                Maybe<IElementHandle> titleContainer = await webElement.GetElementRetriable("div.iva-item-listTopBlock-n6Rva", retryAmount: retryAmount);
                 if (!titleContainer.HasValue) continue;
 
-                Maybe<IElementHandle> itemUrlContainer = await titleContainer.Value.GetElementRetriable("a[itemprop='url']");
+                Maybe<IElementHandle> itemUrlContainer = await titleContainer.Value.GetElementRetriable("a[itemprop='url']", retryAmount: retryAmount);
                 if (!itemUrlContainer.HasValue) continue;
 
                 Maybe<string> itemUrlAttribueValue = await itemUrlContainer.Value.GetAttribute("href");
                 if (!itemUrlAttribueValue.HasValue) continue;
-        
-                Maybe<IElementHandle> itemImage = await webElement.GetElementRetriable("div[data-marker='item-image']");
+
+                Maybe<IElementHandle> itemImage = await webElement.GetElementRetriable("div[data-marker='item-image']", retryAmount: retryAmount);
                 if (!itemImage.HasValue) continue;
                 await itemImage.Value.HoverAsync();
 
-                Maybe<IElementHandle> updatedItemImage = await page.GetElementRetriable($"div[data-marker='item'][data-item-id='{itemId.Value}']");
+                Maybe<IElementHandle> updatedItemImage = await page.GetElementRetriable($"div[data-marker='item'][data-item-id='{itemId.Value}']", retryAmount: retryAmount);
                 if (!updatedItemImage.HasValue) continue;
-            
-                Maybe<IElementHandle> photoSliderList = await updatedItemImage.Value.GetElementRetriable("ul.photo-slider-list-R0jle");
+
+                Maybe<IElementHandle> photoSliderList = await updatedItemImage.Value.GetElementRetriable("ul.photo-slider-list-R0jle", retryAmount: retryAmount);
                 if (!photoSliderList.HasValue) continue;
 
                 IElementHandle[] photoElements = await photoSliderList.Value.GetElements("li");
@@ -85,10 +84,11 @@ public static class AvitoCataloguePageImplementation
     {
         private async Task<IReadOnlyList<string>> GetItemPhotos()
         {
-            List<string> photos = new();
+            int retryAmount = 5;
+            List<string> photos = [];
             foreach (IElementHandle photo in photoElements)
             {
-                Maybe<IElementHandle> imageElement = await photo.GetElementRetriable("img");
+                Maybe<IElementHandle> imageElement = await photo.GetElementRetriable("img", retryAmount: retryAmount);
                 if (!imageElement.HasValue) continue;
                 Maybe<string> srcSetAttribute = await imageElement.Value.GetAttribute("srcset");
                 if (!srcSetAttribute.HasValue) continue;
@@ -99,7 +99,7 @@ public static class AvitoCataloguePageImplementation
             return photos;
         }
     }
-    
+
     extension(IPage page)
     {
         private async Task<IElementHandle[]> GetElements()

@@ -10,6 +10,8 @@ public static class ParserStageProcessRouter
         return stageName switch
         {
             ParsingStageConstants.PAGINATION => ParserStageProcess.Pagination,
+            ParsingStageConstants.CATALOGUE => ParserStageProcess.CatalogueItemsExtracting,
+            ParsingStageConstants.CONCRETE_ITEMS => ParserStageProcess.ConcreteItems,
             _ => ParserStageProcess.Empty
         };
     }

@@ -1,15 +1,12 @@
 using System.Data;
-
 using AvitoSparesParser.Common;
-
 using Dapper;
-
 using RemTech.SharedKernel.Infrastructure.NpgSql;
 
-namespace AvitoSparesParser.CatalogueParsing;
+namespace AvitoSparesParser.CatalogueParsing.Extensions;
 
 public static class AvitoCataloguePageStoring
-{    
+{
     extension(IEnumerable<AvitoCataloguePage>)
     {
         public static async Task<AvitoCataloguePage[]> GetMany(
@@ -62,7 +59,7 @@ public static class AvitoCataloguePageStoring
 
         public async Task UpdateMany(NpgSqlSession session)
         {
-            const string sql = 
+            const string sql =
             """
             UPDATE avito_spares_parser.catalogue_pages
             SET processed = @processed, retry_count = @retry_count
@@ -81,7 +78,7 @@ public static class AvitoCataloguePageStoring
             url = page.Url,
             processed = page.Marker.Processed,
             retry_count = page.Counter.Value
-        };     
+        };
     }
 
     extension(AvitoCataloguePageQuery query)

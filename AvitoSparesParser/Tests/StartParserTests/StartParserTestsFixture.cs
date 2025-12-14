@@ -1,12 +1,9 @@
 using AvitoSparesParser.ParserProcessStarting.BackgroundTasks;
-
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Extensions.DependencyInjection;
-
 using RemTech.SharedKernel.Infrastructure;
 using RemTech.Tests.Shared;
-
 using Testcontainers.PostgreSql;
 using Testcontainers.RabbitMq;
 
@@ -40,7 +37,7 @@ public sealed class StartParserTestsFixture : WebApplicationFactory<AvitoSparesP
         {
             s.ReconfigurePostgreSqlOptions(_dbContainer);
             s.ReconfigureRabbitMqOptions(_rabbitMq);
-            
+
             var startParserProcessListenerDescriptor = s.Single(serv => serv.ImplementationType == typeof(StartParserProcessListener));
             s.Remove(startParserProcessListenerDescriptor);
 

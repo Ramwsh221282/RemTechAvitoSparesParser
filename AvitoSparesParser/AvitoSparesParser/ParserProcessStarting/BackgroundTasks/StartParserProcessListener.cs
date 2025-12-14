@@ -2,10 +2,8 @@ using AvitoSparesParser.Constants;
 using AvitoSparesParser.ParserProcessStarting.Extensions;
 using AvitoSparesParser.ParsingStages;
 using AvitoSparesParser.ParsingStages.Extensions;
-
 using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
-
 using RemTech.SharedKernel.Infrastructure.NpgSql;
 using RemTech.SharedKernel.Infrastructure.RabbitMq;
 
@@ -29,7 +27,7 @@ public sealed class StartParserProcessListener(
         );
 
         _channel = await connection.CreateChannelAsync(options, cancellationToken: stoppingToken);
-        
+
         await _channel.QueueDeclareAsync(
             queue: ServiceConstants.CurrentServiceStartQueue,
             durable: true,
@@ -56,15 +54,15 @@ public sealed class StartParserProcessListener(
         AsyncEventingBasicConsumer consumer = new(_channel);
         consumer.ReceivedAsync += Handler;
         await _channel.BasicConsumeAsync(
-            queue: ServiceConstants.CurrentServiceStartQueue, 
-            autoAck: true, 
-            consumer: consumer, 
+            queue: ServiceConstants.CurrentServiceStartQueue,
+            autoAck: true,
+            consumer: consumer,
             cancellationToken: stoppingToken);
     }
 
     private AsyncEventHandler<BasicDeliverEventArgs> Handler => async (sender, ea) =>
     {
-        Logger.Information("Received start parser message from queue.");        
+        Logger.Information("Received start parser message from queue.");
         try
         {
             await using NpgSqlSession session = new(npgSql);
@@ -79,10 +77,10 @@ public sealed class StartParserProcessListener(
             await links.AddMany(session);
             await session.UnsafeCommit(CancellationToken.None);
 
-            Logger.Information("Parser {Domain} {Type} has been registered with links count: {Count}.", 
+            Logger.Information("Parser {Domain} {Type} has been registered with links count: {Count}.",
                 parser.Domain, parser.Type, links.Length);
         }
-        catch(Exception ex)
+        catch (Exception ex)
         {
             Logger.Error(ex, "Error at processing message from queue.");
         }

@@ -1,8 +1,6 @@
 using System.Text;
 using System.Text.Json;
-
 using RabbitMQ.Client;
-
 using RemTech.SharedKernel.Infrastructure.RabbitMq;
 
 namespace Tests.SubscriptionTests;

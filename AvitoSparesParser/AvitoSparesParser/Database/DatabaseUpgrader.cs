@@ -1,5 +1,4 @@
 using Microsoft.Extensions.Options;
-
 using RemTech.SharedKernel.Infrastructure.NpgSql;
 
 namespace AvitoSparesParser.Database;

@@ -1,8 +1,6 @@
 using AvitoSparesParser.ParserSubscription;
-
 using Microsoft.Extensions.DependencyInjection;
 using ParserSubscriber;
-
 using RemTech.SharedKernel.Infrastructure.NpgSql;
 
 namespace Tests.SubscriptionTests;

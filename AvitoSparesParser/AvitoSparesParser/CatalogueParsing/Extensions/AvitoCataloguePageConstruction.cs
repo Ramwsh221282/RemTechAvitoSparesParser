@@ -1,7 +1,7 @@
 ﻿using AvitoSparesParser.CatalogueParsing;
 using AvitoSparesParser.Common;
 
-namespace AvitoSparesParser.CatalogueParsing;
+namespace AvitoSparesParser.CatalogueParsing.Extensions;
 
 public static class AvitoCataloguePageConstruction
 {

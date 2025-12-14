@@ -1,10 +1,7 @@
 using System.Text;
 using System.Text.Json;
-
 using AvitoSparesParser.Constants;
-
 using RabbitMQ.Client;
-
 using RemTech.SharedKernel.Infrastructure.RabbitMq;
 
 namespace Tests.StartParserTests;
@@ -13,7 +10,7 @@ public sealed class StartParserFakePublisher(RabbitMqConnectionSource rabbitMq)
 {
     public async Task Publish(dynamic message, CancellationToken ct = default)
     {
-        string queue = message.parser_domain + '.' + message.parser_type + '.' + "start";        
+        string queue = message.parser_domain + '.' + message.parser_type + '.' + "start";
 
         IConnection connection = await rabbitMq.GetConnection(ct);
 

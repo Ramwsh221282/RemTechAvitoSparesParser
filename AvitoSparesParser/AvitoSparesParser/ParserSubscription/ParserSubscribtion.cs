@@ -1,10 +1,7 @@
 using System.Text;
 using System.Text.Json;
-
 using Dapper;
-
 using RabbitMQ.Client.Events;
-
 using RemTech.SharedKernel.Infrastructure.NpgSql;
 
 namespace AvitoSparesParser.ParserSubscription;

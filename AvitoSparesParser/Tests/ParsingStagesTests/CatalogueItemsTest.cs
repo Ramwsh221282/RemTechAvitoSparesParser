@@ -7,7 +7,7 @@ using Tests.StartParserTests;
 
 namespace Tests.ParsingStagesTests;
 
-public sealed class PaginationStageTest(ParsingStagesTestsFixture fixture) : IClassFixture<ParsingStagesTestsFixture>
+public sealed class CatalogueItemsTest(ParsingStagesTestsFixture fixture) : IClassFixture<ParsingStagesTestsFixture>
 {
     private readonly IServiceProvider _sp = fixture.Services;
 
@@ -30,9 +30,9 @@ public sealed class PaginationStageTest(ParsingStagesTestsFixture fixture) : ICl
         };
 
         await PublishStartParserMessage(message);
-        await Task.Delay(TimeSpan.FromSeconds(60));
-        bool hasCataloguePages = await EnsureHasCataloguePages();
-        Assert.True(hasCataloguePages);
+        await Task.Delay(TimeSpan.FromMinutes(60));
+        bool hasCatalogueSpares = await EnsureHasCatalogueItems();
+        Assert.True(hasCatalogueSpares);
     }
 
     private async Task PublishStartParserMessage(object message)
@@ -42,12 +42,12 @@ public sealed class PaginationStageTest(ParsingStagesTestsFixture fixture) : ICl
         await publisher.Publish(message);
     }
 
-    private async Task<bool> EnsureHasCataloguePages()
+    private async Task<bool> EnsureHasCatalogueItems()
     {
-        AvitoCataloguePageQuery query = new(UnprocessedOnly: true);
+        AvitoCatalogueSpareQuery query = new(UnprocessedOnly: true);
         await using AsyncServiceScope scope = _sp.CreateAsyncScope();
         await using NpgSqlSession session = scope.ServiceProvider.GetRequiredService<NpgSqlSession>();
-        AvitoCataloguePage[] pages = await IEnumerable<AvitoCataloguePage>.GetMany(session, query);
-        return pages.Length > 0;
+        AvitoCatalogueSpare[] items = await AvitoCatalogueSpare.GetMany(session, query);
+        return items.Length > 0;
     }
 }

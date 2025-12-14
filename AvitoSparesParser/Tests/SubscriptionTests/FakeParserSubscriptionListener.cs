@@ -1,13 +1,9 @@
 using System.Text;
 using System.Text.Json;
-
 using AvitoSparesParser.Constants;
-
 using Microsoft.Extensions.Hosting;
-
 using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
-
 using RemTech.SharedKernel.Infrastructure.RabbitMq;
 
 namespace Tests.SubscriptionTests;

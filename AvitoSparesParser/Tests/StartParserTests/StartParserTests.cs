@@ -3,11 +3,8 @@ using AvitoSparesParser.ParserProcessStarting;
 using AvitoSparesParser.ParserProcessStarting.Extensions;
 using AvitoSparesParser.ParsingStages;
 using AvitoSparesParser.ParsingStages.Extensions;
-
 using Microsoft.Extensions.DependencyInjection;
-
 using ParsingSDK.Parsing;
-
 using RemTech.SharedKernel.Infrastructure.NpgSql;
 
 namespace Tests.StartParserTests;
@@ -23,19 +20,19 @@ public sealed class StartParserTests(StartParserTestsFixture fixture) : IClassFi
         Guid linkId = Guid.NewGuid();
         string parser_domain = ServiceConstants.ServiceDomain;
         string parser_type = ServiceConstants.ServiceType;
-        string url = "https://www.avito.ru/all/zapchasti_i_aksessuary/zapchasti/dlya_gruzovikov_i_spetstehniki-ASgBAgICAkQKJKwJjGQ?cd=1&q=ponsse";        
+        string url = "https://www.avito.ru/all/zapchasti_i_aksessuary/zapchasti/dlya_gruzovikov_i_spetstehniki-ASgBAgICAkQKJKwJjGQ?cd=1&q=ponsse";
 
-        IEnumerable<object> links = [ new { id = linkId, parser_id = id, url } ];
+        IEnumerable<object> links = [new { id = linkId, parser_id = id, url }];
         object message = new
         {
-          id,
-          parser_domain,
-          parser_type,
-          links
-        };        
+            id,
+            parser_domain,
+            parser_type,
+            links
+        };
 
         await PublishStartParserMessage(message);
-        await Task.Delay(TimeSpan.FromSeconds(10));        
+        await Task.Delay(TimeSpan.FromSeconds(10));
         bool hasLinks = await EnsureLinksCreated();
         bool hasPagination = await EnsureStageIsPagination();
         Assert.True(hasLinks);

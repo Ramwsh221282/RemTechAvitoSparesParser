@@ -1,7 +1,5 @@
 using System.Data;
-
 using Dapper;
-
 using RemTech.SharedKernel.Infrastructure.NpgSql;
 
 namespace AvitoSparesParser.ParserProcessStarting.Extensions;

@@ -1,5 +1,4 @@
 ﻿using ParsingSDK.Parsing;
-
 using PuppeteerSharp;
 
 namespace AvitoSparesParser.ConcreteItemParsing.AvitoWebPages;

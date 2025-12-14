@@ -1,5 +1,5 @@
-using AvitoSparesParser.CatalogueParsing;
-using AvitoSparesParser.CatalogueParsing.Extensions;
+﻿using AvitoSparesParser.ConcreteItemParsing.AvitoSpares;
+using AvitoSparesParser.ConcreteItemParsing.AvitoSpares.Extensions;
 using AvitoSparesParser.Constants;
 using Microsoft.Extensions.DependencyInjection;
 using RemTech.SharedKernel.Infrastructure.NpgSql;
@@ -7,7 +7,7 @@ using Tests.StartParserTests;
 
 namespace Tests.ParsingStagesTests;
 
-public sealed class PaginationStageTest(ParsingStagesTestsFixture fixture) : IClassFixture<ParsingStagesTestsFixture>
+public sealed class ConcreteItemsStageTests(ParsingStagesTestsFixture fixture) : IClassFixture<ParsingStagesTestsFixture>
 {
     private readonly IServiceProvider _sp = fixture.Services;
 
@@ -30,24 +30,24 @@ public sealed class PaginationStageTest(ParsingStagesTestsFixture fixture) : ICl
         };
 
         await PublishStartParserMessage(message);
-        await Task.Delay(TimeSpan.FromSeconds(60));
-        bool hasCataloguePages = await EnsureHasCataloguePages();
-        Assert.True(hasCataloguePages);
+        await Task.Delay(TimeSpan.FromMinutes(60));
+        bool hasConcreteItems = await EnsureHasConcreteItems();
+        Assert.True(hasConcreteItems);
     }
-
+    
     private async Task PublishStartParserMessage(object message)
     {
         await using AsyncServiceScope scope = _sp.CreateAsyncScope();
         StartParserFakePublisher publisher = scope.ServiceProvider.GetRequiredService<StartParserFakePublisher>();
         await publisher.Publish(message);
     }
-
-    private async Task<bool> EnsureHasCataloguePages()
+    
+    private async Task<bool> EnsureHasConcreteItems()
     {
-        AvitoCataloguePageQuery query = new(UnprocessedOnly: true);
+        AvitoSpareQuery query = new(UnprocessedOnly: true);
         await using AsyncServiceScope scope = _sp.CreateAsyncScope();
         await using NpgSqlSession session = scope.ServiceProvider.GetRequiredService<NpgSqlSession>();
-        AvitoCataloguePage[] pages = await IEnumerable<AvitoCataloguePage>.GetMany(session, query);
-        return pages.Length > 0;
+        AvitoSpare[] items = await AvitoSpare.GetMany(session, query);
+        return items.Length > 0;
     }
 }

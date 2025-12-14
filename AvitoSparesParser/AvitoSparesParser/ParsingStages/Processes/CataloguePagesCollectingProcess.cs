@@ -1,12 +1,10 @@
 using AvitoSparesParser.CatalogueParsing;
+using AvitoSparesParser.CatalogueParsing.Extensions;
 using AvitoSparesParser.ParserProcessStarting;
 using AvitoSparesParser.ParserProcessStarting.Extensions;
 using AvitoSparesParser.ParsingStages.Extensions;
-
 using ParsingSDK.Parsing;
-
 using PuppeteerSharp;
-
 using RemTech.SharedKernel.Infrastructure.NpgSql;
 
 namespace AvitoSparesParser.ParsingStages.Processes;
@@ -137,7 +135,7 @@ public static class CataloguePagesCollectingProcess
             List<AvitoCataloguePage> pages = new(pageCounter + 1);
             while (pageCounter <= maxPage)
             {
-                string urlValue = $"{originUrl}?page={pageCounter}";
+                string urlValue = $"{originUrl}&p={pageCounter}";
                 AvitoCataloguePage page = AvitoCataloguePage.New(urlValue);
                 pages.Add(page);
                 pageCounter++;

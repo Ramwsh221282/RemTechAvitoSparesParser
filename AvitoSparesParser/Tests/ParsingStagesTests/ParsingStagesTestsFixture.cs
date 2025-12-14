@@ -1,15 +1,11 @@
 using AvitoSparesParser.ParserProcessStarting.BackgroundTasks;
-
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Extensions.DependencyInjection;
-
 using RemTech.SharedKernel.Infrastructure;
 using RemTech.Tests.Shared;
-
 using Testcontainers.PostgreSql;
 using Testcontainers.RabbitMq;
-
 using Tests.StartParserTests;
 
 namespace Tests.ParsingStagesTests;

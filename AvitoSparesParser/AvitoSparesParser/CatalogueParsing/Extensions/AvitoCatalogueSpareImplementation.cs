@@ -1,13 +1,10 @@
 ﻿using AvitoFirewallBypass;
-
-using AvitoSparesParser.CatalogueParsing;
+using AvitoSparesParser.Common;
 using AvitoSparesParser.ConcreteItemParsing.AvitoWebPages;
-
 using ParsingSDK.Parsing;
-
 using PuppeteerSharp;
 
-namespace AvitoSparesParser.CatalogueParsing;
+namespace AvitoSparesParser.CatalogueParsing.Extensions;
 
 public static class AvitoCatalogueSpareImplementation
 {
@@ -15,7 +12,7 @@ public static class AvitoCatalogueSpareImplementation
     {
         public async Task NavigatePage(IPage page)
         {
-            await page.NavigatePage(spare.Metadata.Url);
+            await page.QuickNavigate(spare.Metadata.Url);
         }
 
         public async Task<bool> NavigateWithBypassing(AvitoBypassFactory bypassFactory, IPage page)

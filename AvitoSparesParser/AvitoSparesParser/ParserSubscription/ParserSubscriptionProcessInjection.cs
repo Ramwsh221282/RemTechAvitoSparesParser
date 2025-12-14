@@ -1,5 +1,4 @@
 using ParserSubscriber.Subscribers.RabbitMq;
-
 using RemTech.SharedKernel.Infrastructure.NpgSql;
 
 using RabbitMQProvider = RemTech.SharedKernel.Infrastructure.RabbitMq.RabbitMqConnectionSource;
