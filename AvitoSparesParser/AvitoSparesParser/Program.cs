@@ -1,6 +1,33 @@
-var builder = WebApplication.CreateBuilder(args);
-var app = builder.Build();
+using AvitoFirewallBypass;
+using AvitoSparesParser.Database;
+using AvitoSparesParser.ParserProcessStarting.BackgroundTasks;
+using AvitoSparesParser.ParserSubscription;
+using AvitoSparesParser.ParsingStages;
+using ParsingSDK;
+using ParsingSDK.TextProcessing;
+using RemTech.SharedKernel.Infrastructure;
 
-app.MapGet("/", () => "Hello World!");
+WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
+
+builder.Services.RegisterParserDependencies();
+builder.Services.RegisterAvitoFirewallBypass();
+builder.Services.RegisterSharedInfrastructure();
+builder.Services.RegisterDatabaseUpgrader();
+builder.Services.RegisterParserSubscriptionProcess();
+builder.Services.RegisterStartParserListener();
+builder.Services.RegisterParserWorkStages();
+builder.Services.RegisterTextTransformerBuilder();
+builder.Services.AddQuartzServices();
+
+WebApplication app = builder.Build();
+app.Services.ApplyDatabaseMigrations();
 
 app.Run();
+
+namespace AvitoSparesParser
+{
+    public partial class Program
+    {
+
+    }
+}
