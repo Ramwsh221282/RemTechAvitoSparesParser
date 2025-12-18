@@ -51,6 +51,7 @@ public sealed class IntegrationalTestsFixture : WebApplicationFactory<AvitoSpare
         services.RegisterParserDependencies(optionsConfiguration: conf =>
         {
             conf.Headless = false;
+            conf.DevelopmentMode = true;
         });
     }
 }

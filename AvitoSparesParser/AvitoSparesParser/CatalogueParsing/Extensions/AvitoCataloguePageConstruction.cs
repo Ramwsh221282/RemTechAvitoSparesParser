@@ -1,5 +1,4 @@
-﻿using AvitoSparesParser.CatalogueParsing;
-using AvitoSparesParser.Common;
+﻿using AvitoSparesParser.Common;
 
 namespace AvitoSparesParser.CatalogueParsing.Extensions;
 

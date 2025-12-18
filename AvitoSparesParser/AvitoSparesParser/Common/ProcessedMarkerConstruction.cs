@@ -1,6 +1,4 @@
-﻿using AvitoSparesParser.Common;
-
-namespace AvitoSparesParser.Common;
+﻿namespace AvitoSparesParser.Common;
 
 public static class ProcessedMarkerConstruction
 {

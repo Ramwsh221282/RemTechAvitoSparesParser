@@ -2,7 +2,6 @@ using AvitoSparesParser.Database;
 using AvitoSparesParser.ParserProcessStarting.BackgroundTasks;
 using AvitoSparesParser.ParserSubscription;
 using AvitoSparesParser.ParsingStages;
-using Microsoft.Extensions.Options;
 
 WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
 

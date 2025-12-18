@@ -1,5 +1,4 @@
-﻿using AvitoFirewallBypass;
-using AvitoSparesParser.Common;
+﻿using AvitoSparesParser.Common;
 using ParsingSDK.Parsing;
 using PuppeteerSharp;
 
@@ -46,26 +45,32 @@ public static class AvitoCataloguePageImplementation
             for (int i = 0; i < length; i++)
             {
                 IElementHandle webElement = webElements[i];
-                Maybe<string> itemId = await webElement.GetAttribute("data-item-id");
+                Maybe<string> itemId = await webElement
+                    .GetAttribute("data-item-id");
                 if (!itemId.HasValue) continue;
 
-                Maybe<IElementHandle> titleContainer = await webElement.GetElementRetriable("div.iva-item-listTopBlock-n6Rva", retryAmount: retryAmount);
+                Maybe<IElementHandle> titleContainer = await webElement
+                    .GetElementRetriable("div.iva-item-listTopBlock-n6Rva", retryAmount: retryAmount);
                 if (!titleContainer.HasValue) continue;
 
-                Maybe<IElementHandle> itemUrlContainer = await titleContainer.Value.GetElementRetriable("a[itemprop='url']", retryAmount: retryAmount);
+                Maybe<IElementHandle> itemUrlContainer = await titleContainer.Value
+                    .GetElementRetriable("a[itemprop='url']", retryAmount: retryAmount);
                 if (!itemUrlContainer.HasValue) continue;
 
                 Maybe<string> itemUrlAttribueValue = await itemUrlContainer.Value.GetAttribute("href");
                 if (!itemUrlAttribueValue.HasValue) continue;
 
-                Maybe<IElementHandle> itemImage = await webElement.GetElementRetriable("div[data-marker='item-image']", retryAmount: retryAmount);
+                Maybe<IElementHandle> itemImage = await webElement
+                    .GetElementRetriable("div[data-marker='item-image']", retryAmount: retryAmount);
                 if (!itemImage.HasValue) continue;
                 await itemImage.Value.HoverAsync();
 
-                Maybe<IElementHandle> updatedItemImage = await page.GetElementRetriable($"div[data-marker='item'][data-item-id='{itemId.Value}']", retryAmount: retryAmount);
+                Maybe<IElementHandle> updatedItemImage = await page
+                    .GetElementRetriable($"div[data-marker='item'][data-item-id='{itemId.Value}']", retryAmount: retryAmount);
                 if (!updatedItemImage.HasValue) continue;
 
-                Maybe<IElementHandle> photoSliderList = await updatedItemImage.Value.GetElementRetriable("ul.photo-slider-list-R0jle", retryAmount: retryAmount);
+                Maybe<IElementHandle> photoSliderList = await updatedItemImage
+                    .Value.GetElementRetriable("ul.photo-slider-list-R0jle", retryAmount: retryAmount);
                 if (!photoSliderList.HasValue) continue;
 
                 IElementHandle[] photoElements = await photoSliderList.Value.GetElements("li");
