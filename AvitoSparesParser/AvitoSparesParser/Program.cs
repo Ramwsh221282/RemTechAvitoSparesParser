@@ -1,15 +1,19 @@
-using AvitoFirewallBypass;
 using AvitoSparesParser.Database;
 using AvitoSparesParser.ParserProcessStarting.BackgroundTasks;
 using AvitoSparesParser.ParserSubscription;
 using AvitoSparesParser.ParsingStages;
-using ParsingSDK;
-using ParsingSDK.TextProcessing;
-using RemTech.SharedKernel.Infrastructure;
+using Microsoft.Extensions.Options;
 
 WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
 
-builder.Services.RegisterParserDependencies();
+// builder.Services.RegisterParserDependencies(conf =>
+// {
+//         conf.AddSingleton<IOptions<ScrapingBrowserOptions>>(_ => Options.Create(new ScrapingBrowserOptions
+//         {
+//             Headless = false,
+//         }));
+// });
+
 builder.Services.RegisterAvitoFirewallBypass();
 builder.Services.RegisterSharedInfrastructure();
 builder.Services.RegisterDatabaseUpgrader();
@@ -21,7 +25,6 @@ builder.Services.AddQuartzServices();
 
 WebApplication app = builder.Build();
 app.Services.ApplyDatabaseMigrations();
-
 app.Run();
 
 namespace AvitoSparesParser

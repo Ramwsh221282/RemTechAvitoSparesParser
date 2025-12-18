@@ -1,6 +1,7 @@
-using ParserSubscriber.Subscribers.RabbitMq;
+using Microsoft.Extensions.Options;
+using ParserSubscriber.SubscribtionContext;
+using ParserSubscriber.SubscribtionContext.Options;
 using RemTech.SharedKernel.Infrastructure.NpgSql;
-
 using RabbitMQProvider = RemTech.SharedKernel.Infrastructure.RabbitMq.RabbitMqConnectionSource;
 
 namespace AvitoSparesParser.ParserSubscription;
@@ -11,58 +12,30 @@ public static class ParserSubscriptionProcessInjection
     {
         public void RegisterParserSubscriptionProcess()
         {
+            services.AddOptions<RabbitMqRequestReplyResponseListeningQueueOptions>()
+                .BindConfiguration(nameof(RabbitMqRequestReplyResponseListeningQueueOptions));
+            
             services.RegisterParserSubscriber<RabbitMqRequestReplySubscriber>(
                 rabbitMqProviderConfiguration: ConnectionSourceConfiguration,
-                messageHandlerConfiguration: MessageHandlerConfiguration,
-                optionsConfiguration: OptionsConfiguration
+                npgSqlProviderConfiguration: NpgSqlProviderConfiguration,
+                schemaName: "avito_spares_parser"
             );
         }
     }
 
     private static Action<IServiceCollection> ConnectionSourceConfiguration => (serv) =>
         {
-            serv.AddSingleton<RabbitMqConnectionSource>(sp =>
+            serv.AddSingleton<RabbitMqConnectionProvider>(sp =>
                 {
                     RabbitMQProvider source = sp.GetRequiredService<RabbitMQProvider>();
-                    return async (ct) => await source.GetConnection(ct);
+                    return (ct) => source.GetConnection(ct);
                 });
         };
-
-    private static Action<IServiceCollection> MessageHandlerConfiguration => (serv) =>
-    {
-        serv.AddTransient<RabbitMqRequestReplySubscriberMessageHandler>(sp =>
+    
+    private static Action<IServiceCollection> NpgSqlProviderConfiguration => (serv) =>
+        serv.AddSingleton<NpgSqlProvider>(sp =>
         {
-            NpgSqlConnectionFactory npgSql = sp.GetRequiredService<NpgSqlConnectionFactory>();
-            Serilog.ILogger logger = sp.GetRequiredService<Serilog.ILogger>().ForContext<RabbitMqRequestReplySubscriberMessageHandler>();
-            return async (ea, channel) =>
-            {
-                try
-                {
-                    CancellationToken ct = CancellationToken.None;
-                    await using NpgSqlSession session = new(npgSql);
-                    await session.UseTransaction(CancellationToken.None);
-                    if (await ParserSubscribtion.Persisted(session, ct))
-                    {
-                        logger.Error("Parser has already subscribed. Aborting subscription saving.");
-                        return;
-                    }
-
-                    ParserSubscribtion record = ParserSubscribtion.FromDeliverEventArgs(ea);
-                    await record.Persist(session, ct);
-                    await session.UnsafeCommit(ct);
-
-                    logger.Information("Subscription has been saved.");
-                }
-                catch (Exception ex)
-                {
-                    logger.Error(ex, "Error at confirming subscription message in reply queue.");
-                    throw;
-                }
-            };
+            IOptions<NpgSqlOptions> options = sp.GetRequiredService<IOptions<NpgSqlOptions>>();
+            return new NpgSqlProvider { ConnectionString = options.Value.ToConnectionString() };
         });
-    };
-
-    private static Action<IServiceCollection> OptionsConfiguration => (serv) =>
-        serv.AddOptions<RabbitMqRequestReplyResponseListeningQueueOptions>()
-            .BindConfiguration(nameof(RabbitMqRequestReplyResponseListeningQueueOptions));
 }

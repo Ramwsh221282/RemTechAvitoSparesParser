@@ -1,5 +1,6 @@
 using AvitoSparesParser.CatalogueParsing;
 using AvitoSparesParser.CatalogueParsing.Extensions;
+using AvitoSparesParser.Common;
 using AvitoSparesParser.ParserProcessStarting;
 using AvitoSparesParser.ParserProcessStarting.Extensions;
 using AvitoSparesParser.ParsingStages.Extensions;
@@ -37,7 +38,7 @@ public static class CataloguePagesCollectingProcess
                 return;
             }
 
-            IBrowser browser = await deps.Browsers.ProvideBrowser(headless: false);
+            IBrowser browser = await deps.Browsers.ProvideBrowser();
 
             for (int i = 0; i < links.Length; i++)
             {
@@ -46,7 +47,7 @@ public static class CataloguePagesCollectingProcess
 
                 try
                 {
-                    await (await browser.GetPage()).NavigatePage(link.Url);
+                    await (await browser.GetPage()).QuickNavigate(link.Url);
                     if (!await deps.Bypasses.Create(await browser.GetPage()).Bypass())
                         throw new InvalidOperationException("Bypass failed.");
                     await (await browser.GetPage()).ScrollBottom();

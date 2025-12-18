@@ -13,7 +13,7 @@ public static class AvitoCataloguePageImplementation
             BrowserFactory browsers,
             AvitoBypassFactory bypasses)
         {
-            IBrowser browser = await browsers.ProvideBrowser(headless: false);
+            IBrowser browser = await browsers.ProvideBrowser();
             try
             {
                 IPage browserPage = await browser.GetPage();

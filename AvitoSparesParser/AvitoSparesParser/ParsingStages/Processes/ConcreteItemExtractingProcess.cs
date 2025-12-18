@@ -37,7 +37,7 @@ public static class ConcreteItemExtractingProcess
                 return;
             }
 
-            IBrowser browser = await deps.Browsers.ProvideBrowser(false);
+            IBrowser browser = await deps.Browsers.ProvideBrowser();
             ITextTransformer textTransformer = deps.TextTransformerBuilder
                 .UsePunctuationCleaner()
                 .UseNewLinesCleaner()

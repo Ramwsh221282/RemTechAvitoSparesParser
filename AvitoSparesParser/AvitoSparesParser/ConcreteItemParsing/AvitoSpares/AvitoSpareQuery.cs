@@ -1,4 +1,4 @@
-﻿namespace AvitoSparesParser.ConcreteItemParsing.AvitoSpares.Extensions;
+﻿namespace AvitoSparesParser.ConcreteItemParsing.AvitoSpares;
 
 public sealed record AvitoSpareQuery(
     bool ProcessedOnly = false,

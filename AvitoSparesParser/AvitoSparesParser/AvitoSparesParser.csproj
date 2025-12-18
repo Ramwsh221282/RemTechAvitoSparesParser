@@ -6,15 +6,23 @@
     </PropertyGroup>
 
     <ItemGroup>
-      <PackageReference Include="AvitoFirewallBypass" Version="1.0.0" />
-      <PackageReference Include="ParserSubscriber" Version="1.0.1" />
-      <PackageReference Include="ParsingSDK" Version="1.0.6" />
+      <PackageReference Include="AvitoFirewallBypass" Version="1.0.7" />
+      <PackageReference Include="ParserSubscriber" Version="1.0.18" />
+      <PackageReference Include="ParsingSDK" Version="1.0.25" />
       <PackageReference Include="RemTech.SharedKernel.Configuration" Version="1.0.0" />
       <PackageReference Include="RemTech.SharedKernel.Infrastructure" Version="1.0.3" />
     </ItemGroup>
-
+        
     <ItemGroup>
-      <EmbeddedResource Include="Database\*.sql"></EmbeddedResource>
+        <Using Include="ParsingSDK" />
+        <Using Include="AvitoFirewallBypass" />
+        <Using Include="ParserSubscriber" />
+        <Using Include="ParsingSDK.TextProcessing" />
+        <Using Include="RemTech.SharedKernel.Infrastructure" />
+    </ItemGroup>
+    
+    <ItemGroup>
+        <EmbeddedResource Include="Database\*.sql"/>
     </ItemGroup>
 
 </Project>

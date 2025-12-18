@@ -1,9 +1,8 @@
-using AvitoSparesParser.ConcreteItemParsing.AvitoWebPages;
+using AvitoSparesParser.ConcreteItemParsing.AvitoSpares;
 using ParsingSDK.Parsing;
-using ParsingSDK.TextProcessing;
 using PuppeteerSharp;
 
-namespace AvitoSparesParser.ConcreteItemParsing.AvitoSpares.Extensions;
+namespace AvitoSparesParser.ConcreteItemParsing.AvitoWebPages;
 
 public static class AvitoSpareRequirementsWebPage
 {
