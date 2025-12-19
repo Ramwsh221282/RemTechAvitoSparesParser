@@ -19,15 +19,14 @@ public sealed class AvitoSpare
         Func<T, bool>? processedExtractor = null)
     {
         AvitoSpare current = this;
-        if (catalogueRepresentationExtractor != null)
-            current = new AvitoSpare() { Id = current.Id, CatalogueRepresentation = catalogueRepresentationExtractor(source) };
-        if (concreteRepresentationExtractor != null)
-            current = new AvitoSpare() { Id = current.Id, ConcreteRepresentation = concreteRepresentationExtractor(source) };
-        if (retryCountExtractor != null)
-            current = new AvitoSpare() { Id = current.Id, RetryCount = retryCountExtractor(source) };
-        if (processedExtractor != null)
-            current = new AvitoSpare() { Id = current.Id, Processed = processedExtractor(source) };
-        return current;
+        return new AvitoSpare()
+        {
+            Id = current.Id,
+            CatalogueRepresentation = catalogueRepresentationExtractor?.Invoke(source) ?? current.CatalogueRepresentation,
+            ConcreteRepresentation = concreteRepresentationExtractor?.Invoke(source) ?? current.ConcreteRepresentation,
+            RetryCount = retryCountExtractor?.Invoke(source) ?? current.RetryCount,
+            Processed = processedExtractor?.Invoke(source) ?? current.Processed,
+        };
     }
 
     public AvitoSpare Concretized(AvitoSpareConcreteRepresentation concreteRepresentation)
@@ -49,11 +48,15 @@ public sealed class AvitoSpare
     }
     
     public static AvitoSpare Create(
-        string id, 
+        string id,
+        int retryCount,
+        bool processed,
         AvitoSpareCatalogueRepresentation catalogueRepresentation, 
         AvitoSpareConcreteRepresentation concreteRepresentation) => new()
     {
         Id = id,
+        RetryCount = retryCount,
+        Processed = processed,
         CatalogueRepresentation = catalogueRepresentation,
         ConcreteRepresentation = concreteRepresentation,
     };

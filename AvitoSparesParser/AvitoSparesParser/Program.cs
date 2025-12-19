@@ -1,5 +1,5 @@
 using AvitoSparesParser.Database;
-using AvitoSparesParser.ParserProcessStarting.BackgroundTasks;
+using AvitoSparesParser.ParserStartConfiguration;
 using AvitoSparesParser.ParserSubscription;
 using AvitoSparesParser.ParsingStages;
 
@@ -17,7 +17,7 @@ builder.Services.RegisterAvitoFirewallBypass();
 builder.Services.RegisterSharedInfrastructure();
 builder.Services.RegisterDatabaseUpgrader();
 builder.Services.RegisterParserSubscriptionProcess();
-builder.Services.RegisterStartParserListener();
+builder.Services.RegisterParserStartQueue();
 builder.Services.RegisterParserWorkStages();
 builder.Services.RegisterTextTransformerBuilder();
 builder.Services.AddQuartzServices();

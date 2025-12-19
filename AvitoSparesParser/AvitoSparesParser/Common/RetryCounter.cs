@@ -10,14 +10,3 @@ public sealed class RetryCounter(int counter)
         Value = next;
     }
 }
-
-public static class RetryCounterExtensions
-{
-    extension(IHasRetryCounter)
-    {
-        public static void Increase(IHasRetryCounter counter)
-        {
-            counter.IncreaseRetry();
-        }
-    }
-}

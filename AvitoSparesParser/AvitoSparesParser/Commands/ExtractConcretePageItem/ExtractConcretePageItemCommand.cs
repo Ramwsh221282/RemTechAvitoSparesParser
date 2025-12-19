@@ -41,7 +41,7 @@ return { title, type };
             throw new InvalidOperationException("Not all properties set.");
         
         AvitoSpareConcreteRepresentation representation = result.Representation();
-        return spare.Transform(representation, concreteRepresentationExtractor: r => r);
+        return spare.Concretized(representation);
     }
 
     private sealed class JsonData

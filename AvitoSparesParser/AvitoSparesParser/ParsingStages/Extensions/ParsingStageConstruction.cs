@@ -1,4 +1,4 @@
-using AvitoSparesParser.ParserProcessStarting;
+using AvitoSparesParser.ParserStartConfiguration;
 
 namespace AvitoSparesParser.ParsingStages.Extensions;
 

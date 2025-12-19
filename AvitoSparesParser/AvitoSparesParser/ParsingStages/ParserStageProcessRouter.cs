@@ -4,7 +4,7 @@ namespace AvitoSparesParser.ParsingStages;
 
 public static class ParserStageProcessRouter
 {
-    public static ParserStageProcess ChooseRightOne(ParsingStage stage)
+    public static ParserStageProcess ResolveStageByName(ParsingStage stage)
     {
         string stageName = stage.Name;
         return stageName switch
@@ -12,6 +12,7 @@ public static class ParserStageProcessRouter
             ParsingStageConstants.PAGINATION => ParserStageProcess.Pagination,
             ParsingStageConstants.CATALOGUE => ParserStageProcess.CatalogueItemsExtracting,
             ParsingStageConstants.CONCRETE_ITEMS => ParserStageProcess.ConcreteItems,
+            ParsingStageConstants.FINALIZATION_STAGE => ParserStageProcess.Finalization,
             _ => ParserStageProcess.Empty
         };
     }

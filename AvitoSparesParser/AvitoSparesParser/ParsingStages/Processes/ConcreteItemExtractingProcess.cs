@@ -21,7 +21,7 @@ public static class ConcreteItemExtractingProcess
             
             Maybe<ParsingStage> stage = await GetConcreteItemsStage(session, ct);
             if (!stage.HasValue) return;
-
+            
             AvitoSpare[] catalogueSpares = await GetAvitoCatalogueItems(session, ct);
             if (CanSwitchNextStage(catalogueSpares))
             {
@@ -43,7 +43,7 @@ public static class ConcreteItemExtractingProcess
 
     private static async Task<AvitoSpare[]> GetAvitoCatalogueItems(NpgSqlSession session, CancellationToken ct)
     {
-        AvitoSpareQuery query = new(UnprocessedOnly: true, CatalogueOnly: true, WithLock: true, Limit: 50, RetryCountThreshold: 5);
+        AvitoSpareQuery query = new(CatalogueOnly: true, WithLock: true, Limit: 50, RetryCountThreshold: 10);
         return await AvitoSpare.Query(session, query, ct);
     }
 
@@ -52,12 +52,12 @@ public static class ConcreteItemExtractingProcess
         return spares.Length == 0;
     }
     
-    private static async Task SwitchNextStage(ParsingStage stage, NpgSqlSession session, Serilog.ILogger logger, CancellationToken ct)
+    private static async Task SwitchNextStage(ParsingStage stage, NpgSqlSession session, ILogger logger, CancellationToken ct)
     {
         ParsingStage finalization = stage.ToFinalizationStage();
         await finalization.Update(session, ct);
         await session.UnsafeCommit(ct);
-        logger.Information("Switched to finalization stage.");
+        logger.Information("Switched to {Stage} stage.", finalization.Name);
     }
 
     private static async Task ProcessConcreteItemsExtraction(AvitoSpare[] spares, ParserStageDependencies deps, NpgSqlSession session)
@@ -73,6 +73,7 @@ public static class ConcreteItemExtractingProcess
             spares[i] = await ExtractConcreteSpareFromCatalogueSpare(command, spare);
         }
         await spares.PersistAsConcreteRepresentationMany(session);
+        await browser.DestroyAsync();
     }
 
     private static async Task<AvitoSpare> ExtractConcreteSpareFromCatalogueSpare(
@@ -82,7 +83,8 @@ public static class ConcreteItemExtractingProcess
     {
         try
         {
-            return await command.Extract(spare);
+            spare = await command.Extract(spare);
+            return spare.MarkProcessed();
         }
         catch(EvaluationFailedException)
         {
@@ -90,11 +92,11 @@ public static class ConcreteItemExtractingProcess
         }
         catch (Exception)
         {
-            return spare;
+            return spare.IncreaseRetryAmount();
         }
     }
 
-    private static async Task FinishTransaction(NpgSqlSession session, Serilog.ILogger logger, CancellationToken ct)
+    private static async Task FinishTransaction(NpgSqlSession session, ILogger logger, CancellationToken ct)
     {
         try
         {

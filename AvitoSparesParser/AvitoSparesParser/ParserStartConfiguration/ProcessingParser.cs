@@ -1,4 +1,4 @@
-namespace AvitoSparesParser.ParserProcessStarting;
+namespace AvitoSparesParser.ParserStartConfiguration;
 
 public sealed record ProcessingParser(
     Guid Id,

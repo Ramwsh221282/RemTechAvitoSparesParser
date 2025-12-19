@@ -2,10 +2,21 @@ using System.Data;
 using Dapper;
 using RemTech.SharedKernel.Infrastructure.NpgSql;
 
-namespace AvitoSparesParser.ParserProcessStarting.Extensions;
+namespace AvitoSparesParser.ParserStartConfiguration.Extensions;
 
 public static class ProcessingParserStoringExtensions
 {
+    extension(ProcessingParser)
+    {
+        public static async Task<bool> Exists(NpgSqlSession session)
+        {
+            const string sql = "SELECT EXISTS (SELECT 1 FROM avito_spares_parser.processing_parsers)";
+            CommandDefinition command = new(sql, transaction: session.Transaction);
+            bool exists = await session.QuerySingleRow<bool>(command);
+            return exists;
+        }
+    }
+    
     extension(ProcessingParserLinkQuery query)
     {
         private (DynamicParameters parameters, string filterSql) WhereClause()
@@ -41,7 +52,6 @@ public static class ProcessingParserStoringExtensions
             string sql = $"""
             SELECT
             id as id,
-            parser_id as parser_id,
             url as url,
             processed as processed,
             retry_count as retry_count
@@ -55,13 +65,11 @@ public static class ProcessingParserStoringExtensions
             while (reader.Read())
             {
                 Guid id = reader.GetGuid(reader.GetOrdinal("id"));
-                Guid parser_id = reader.GetGuid(reader.GetOrdinal("parser_id"));
                 string url = reader.GetString(reader.GetOrdinal("url"));
                 bool processed = reader.GetBoolean(reader.GetOrdinal("processed"));
                 int retry_count = reader.GetInt32(reader.GetOrdinal("retry_count"));
                 links.Add(new ProcessingParserLink(
                     id,
-                    parser_id,
                     url,
                     new Common.RetryCounter(retry_count),
                     new Common.ProcessedMarker(processed)
@@ -91,9 +99,9 @@ public static class ProcessingParserStoringExtensions
         {
             const string sql = """
             INSERT INTO avito_spares_parser.processing_parser_links
-            (id, parser_id, url, processed, retry_count)
+            (id, url, processed, retry_count)
             VALUES
-            (@id, @parser_id, @url, @processed, @retry_count)
+            (@id, @url, @processed, @retry_count)
             """;
             IEnumerable<object> parameters = links.Select(link => link.ExtractParameters());
             await session.ExecuteBulk(sql, parameters);
@@ -115,13 +123,6 @@ public static class ProcessingParserStoringExtensions
             await session.Execute(command);
         }
 
-        public async Task Update(NpgSqlSession session, CancellationToken ct = default)
-        {
-            const string sql = "UPDATE SET finished = @finished WHERE id = @id";
-            CommandDefinition command = session.FormCommand(sql, parser.ExtractParameters(), ct: ct);
-            await session.Execute(command);
-        }
-
         private object ExtractParameters() => new
         {
             id = parser.Id,
@@ -137,7 +138,6 @@ public static class ProcessingParserStoringExtensions
         private object ExtractParameters() => new
         {
             id = link.Id,
-            parser_id = link.ParserId,
             url = link.Url,
             processed = link.Marker.Processed,
             retry_count = link.Counter.Value,

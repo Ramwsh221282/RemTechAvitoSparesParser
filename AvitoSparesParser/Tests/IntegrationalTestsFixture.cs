@@ -4,10 +4,12 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Options;
 using ParsingSDK;
+using ParsingSDK.ParserInvokingContext;
 using RemTech.SharedKernel.Infrastructure;
 using RemTech.Tests.Shared;
 using Testcontainers.PostgreSql;
 using Testcontainers.RabbitMq;
+using Tests.StartParserTests;
 
 namespace Tests;
 
@@ -26,6 +28,8 @@ public sealed class IntegrationalTestsFixture : WebApplicationFactory<AvitoSpare
             services.ReconfigurePostgreSqlOptions(_dbContainer);
             services.ReconfigureRabbitMqOptions(_rabbitMq);
             services.ReconfigureQuartzHostedService();
+            services.RegisterParserStartOptionsByAppsettings();
+            services.AddTransient<FakeStartParserPublisher>();
             ReconfigureBrowserOptions(services);
         });
     }

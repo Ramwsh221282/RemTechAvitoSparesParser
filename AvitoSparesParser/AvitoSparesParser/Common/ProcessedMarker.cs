@@ -10,14 +10,3 @@ public sealed class ProcessedMarker(bool processed)
         Processed = true;
     }
 }
-
-public static class ProcessedMarkerImplementation
-{
-    extension(IHasProcessedMarker)
-    {
-        public static void MarkProcessed(IHasProcessedMarker marker)
-        {
-            marker.MarkProcessed();
-        }
-    }
-}

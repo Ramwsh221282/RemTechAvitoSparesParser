@@ -37,7 +37,6 @@ public static class CatalogueItemsExtractingProcess
 
     private static async Task FinishTransaction(NpgSqlSession session, Serilog.ILogger logger, CancellationToken ct)
     {
-        await session.UnsafeCommit(CancellationToken.None);
         try
         {
             await session.UnsafeCommit(ct);

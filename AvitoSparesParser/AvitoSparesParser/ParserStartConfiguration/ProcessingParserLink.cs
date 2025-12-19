@@ -1,10 +1,9 @@
 using AvitoSparesParser.Common;
 
-namespace AvitoSparesParser.ParserProcessStarting;
+namespace AvitoSparesParser.ParserStartConfiguration;
 
 public sealed record ProcessingParserLink(
     Guid Id,
-    Guid ParserId,
     string Url,
     RetryCounter Counter,
     ProcessedMarker Marker

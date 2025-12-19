@@ -1,8 +1,8 @@
 using AvitoSparesParser.CatalogueParsing;
 using AvitoSparesParser.CatalogueParsing.Extensions;
 using AvitoSparesParser.Commands.ExtractPagedUrls;
-using AvitoSparesParser.ParserProcessStarting;
-using AvitoSparesParser.ParserProcessStarting.Extensions;
+using AvitoSparesParser.ParserStartConfiguration;
+using AvitoSparesParser.ParserStartConfiguration.Extensions;
 using AvitoSparesParser.ParsingStages.Extensions;
 using ParsingSDK.Parsing;
 using PuppeteerSharp;

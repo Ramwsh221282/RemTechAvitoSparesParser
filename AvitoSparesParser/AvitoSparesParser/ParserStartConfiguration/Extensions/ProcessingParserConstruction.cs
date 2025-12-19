@@ -3,7 +3,7 @@ using System.Text.Json;
 using AvitoSparesParser.Common;
 using RabbitMQ.Client.Events;
 
-namespace AvitoSparesParser.ParserProcessStarting.Extensions;
+namespace AvitoSparesParser.ParserStartConfiguration.Extensions;
 
 public static class ProcessingParserConstruction
 {
@@ -26,12 +26,10 @@ public static class ProcessingParserConstruction
         public static ProcessingParserLink FromJson(JsonElement element)
         {
             Guid id = element.GetProperty("id").GetGuid();
-            Guid parserId = element.GetProperty("parser_id").GetGuid();
             string url = element.GetProperty("url").GetString()!;
 
             ProcessingParserLink link = new(
                 id,
-                parserId,
                 url,
                 Marker: ProcessedMarker.Unprocessed(),
                 Counter: RetryCounter.New());
@@ -47,7 +45,7 @@ public static class ProcessingParserConstruction
             string json = Encoding.UTF8.GetString(ea.Body.Span);
             using JsonDocument document = JsonDocument.Parse(json);
 
-            Guid id = document.RootElement.GetProperty("id").GetGuid();
+            Guid id = document.RootElement.GetProperty("parser_id").GetGuid();
             string domain = document.RootElement.GetProperty("parser_domain").GetString()!;
             string type = document.RootElement.GetProperty("parser_type").GetString()!;
 

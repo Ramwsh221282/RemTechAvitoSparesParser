@@ -55,15 +55,15 @@ public static class AvitoSpareStoringImplementation
                 ? null : reader.GetString(reader.GetOrdinal("type"));
             string? title = reader.IsDBNull(reader.GetOrdinal("title")) 
                 ? null : reader.GetString(reader.GetOrdinal("title"));
-            
-            AvitoSpare catalogue = AvitoSpare.CatalogueRepresented(id, new AvitoSpareCatalogueRepresentation(url, price, isNds, address, photos, oem));
+
+            AvitoSpareCatalogueRepresentation catalogueRepresentation = new(url, price, isNds, address, photos, oem);
             if (type == null || title == null)
-                return catalogue
+                return AvitoSpare.CatalogueRepresented(id, catalogueRepresentation)
                     .Transform(processed, processedExtractor: p => p)
                     .Transform(retryCount, retryCountExtractor: r => r);
             
             AvitoSpareConcreteRepresentation concreteRepresentation = new(type, title);
-            return catalogue.Transform(concreteRepresentation, concreteRepresentationExtractor: c => c);
+            return AvitoSpare.Create(id, retryCount, processed, catalogueRepresentation, concreteRepresentation);
         }
     }
     
@@ -98,8 +98,8 @@ public static class AvitoSpareStoringImplementation
                 INSERT INTO avito_spares_parser.spares
                 (id, url, price, is_nds, address, photos, oem, type, title, processed, retry_count)
                 VALUES
-                (@id, @url, @price, @is_nds, @address, @photos::jsonb, @oem, @type, @title)
-                ON CONFLICT (id) DO UPDATE SET type = @type, title = @title
+                (@id, @url, @price, @is_nds, @address, @photos::jsonb, @oem, @type, @title, @processed, @retry_count)
+                ON CONFLICT (id) DO UPDATE SET type = @type, title = @title, processed = @processed, retry_count = @retry_count
                 """;
             IEnumerable<object> parameters = spares.Select(spare => spare.ExtractConcreteRepresentationParameters());
             await session.ExecuteBulk(sql, parameters);
@@ -149,12 +149,12 @@ public static class AvitoSpareStoringImplementation
             if (query.CatalogueOnly)
             {
                 filters.Add("type is null");
-                filters.Add("characteristics is null");
+                filters.Add("title is null");
             }
             if (query.ConcreteOnly)
             {
                 filters.Add("type is not null");
-                filters.Add("characteristics is not null");
+                filters.Add("title is not null");
             }
             if (query.RetryCountThreshold.HasValue)
             {
