@@ -1,7 +1,8 @@
 using AvitoSparesParser.CatalogueParsing;
 using AvitoSparesParser.CatalogueParsing.Extensions;
-using AvitoSparesParser.ParserProcessStarting;
-using AvitoSparesParser.ParserProcessStarting.Extensions;
+using AvitoSparesParser.Commands.ExtractPagedUrls;
+using AvitoSparesParser.ParserStartConfiguration;
+using AvitoSparesParser.ParserStartConfiguration.Extensions;
 using AvitoSparesParser.ParsingStages.Extensions;
 using ParsingSDK.Parsing;
 using PuppeteerSharp;
@@ -15,133 +16,116 @@ public static class CataloguePagesCollectingProcess
     {
         public static ParserStageProcess Pagination => async (deps, ct) =>
         {
-            Serilog.ILogger logger = deps.Logger.ForContext<ParserStageProcess>();
-            await using NpgSqlSession session = new(deps.NpgSql);
+            deps.Deconstruct(
+                out NpgSqlConnectionFactory npgSql, 
+                out Serilog.ILogger dLogger, 
+                out AvitoBypassFactory factory, 
+                out BrowserFactory browsers, 
+                out _);
+            
+            Serilog.ILogger logger = dLogger.ForContext<ParserStageProcess>();
+            await using NpgSqlSession session = new(npgSql);
             await session.UseTransaction(ct);
-
-            ParsingStageQuery stageQuery = new(Name: ParsingStageConstants.PAGINATION, WithLock: true);
-            Maybe<ParsingStage> stage = await ParsingStage.GetStage(session, stageQuery, ct);
+            
+            Maybe<ParsingStage> stage = await GetPaginationStage(session, ct);
             if (!stage.HasValue) return;
-
-            ProcessingParserLinkQuery linksQuery = new(
-                OnlyNotFetched: true,
-                RetryCountThreshold: 5,
-                WithLock: true
-                );
-            ProcessingParserLink[] links = await IEnumerable<ProcessingParserLink>.QueryMany(session, linksQuery, ct);
-            if (links.Length == 0)
+            
+            ProcessingParserLink[] links = await GetParserLinksForPagedUrlsExtraction(session, ct);
+            if (CanSwitchNextStage(links))
             {
-                ParsingStage catalogueStage = stage.Value.ToCatalogueStage();
-                await catalogueStage.Update(session, ct);
-                await session.UnsafeCommit(ct);
+                await SwitchNextStage(stage.Value, session, logger, ct);
                 return;
             }
 
-            IBrowser browser = await deps.Browsers.ProvideBrowser(headless: false);
-
-            for (int i = 0; i < links.Length; i++)
-            {
-                ProcessingParserLink link = links[i];
-                logger.Information("Extracting catalogue pages for link url: {Url}", link.Url);
-
-                try
-                {
-                    await (await browser.GetPage()).NavigatePage(link.Url);
-                    if (!await deps.Bypasses.Create(await browser.GetPage()).Bypass())
-                        throw new InvalidOperationException("Bypass failed.");
-                    await (await browser.GetPage()).ScrollBottom();
-                    IElementHandle[] paginationElements = await GetPaginationElements(await browser.GetPage());
-                    int currentPage = await GetCurrentPageFromPaginationContainer(paginationElements);
-                    int lastPage = await GetMaxPageFromPaginationContainer(paginationElements);
-                    AvitoCataloguePage[] pages = CreateCataloguePages(link.Url, currentPage, lastPage);
-                    logger.Information("Extracted {Count} catalogue pages for link url: {Url}", pages.Length, link.Url);
-                    await pages.AddMany(session);
-                    link.Marker.MarkProcessed();
-                }
-                catch (Exception ex)
-                {
-                    deps.Logger.Error(ex, "Error for processing link url: {Url}", link.Url);
-                    link.Counter.Increase();
-                }
-                finally
-                {
-                    links[i] = link;
-                }
-            }
-
-            await browser.DestroyAsync();
-            await links.UpdateMany(session);
-
-            try
-            {
-                await session.UnsafeCommit(ct);
-            }
-            catch (Exception ex)
-            {
-                logger.Error(ex, "Error at committing transaction.");
-            }
+            await ProcessPagedUrlExtraction(links, browsers, factory, session, logger);
+            await FinishTransaction(session, logger, ct);
         };
+    }
+    
+    private static async Task<Maybe<ParsingStage>> GetPaginationStage(NpgSqlSession session, CancellationToken ct)
+    {
+        ParsingStageQuery stageQuery = new(Name: ParsingStageConstants.PAGINATION, WithLock: true);
+        Maybe<ParsingStage> stage = await ParsingStage.GetStage(session, stageQuery, ct);
+        return stage;
+    }
 
-        private static async Task<IElementHandle[]> GetPaginationElements(IPage page)
+    private static async Task<ProcessingParserLink[]> GetParserLinksForPagedUrlsExtraction(
+        NpgSqlSession session,
+        CancellationToken ct)
+    {
+        ProcessingParserLinkQuery linksQuery = new(OnlyNotFetched: true, RetryCountThreshold: 5, WithLock: true);
+        ProcessingParserLink[] links = await IEnumerable<ProcessingParserLink>.QueryMany(session, linksQuery, ct);
+        return links;
+    }
+
+    private static bool CanSwitchNextStage(ProcessingParserLink[] links)
+    {
+        return links.Length == 0;
+    }
+
+    private static async Task SwitchNextStage(
+        ParsingStage stage, 
+        NpgSqlSession session, 
+        Serilog.ILogger logger, 
+        CancellationToken ct)
+    {
+        ParsingStage catalogueStage = stage.ToCatalogueStage();
+        await catalogueStage.Update(session, ct);
+        await session.UnsafeCommit(ct);
+        logger.Information("Switched to: {Stage}", catalogueStage.Name);
+    }
+
+    private static async Task ProcessPagedUrlExtraction(
+        ProcessingParserLink[] links, 
+        BrowserFactory browsers, 
+        AvitoBypassFactory bypassFactory, 
+        NpgSqlSession session,
+        Serilog.ILogger logger)
+    {
+        IBrowser browser = await browsers.ProvideBrowser();
+        
+        for (int i = 0; i < links.Length; i++)
         {
-            Maybe<IElementHandle> element = await page.GetElementRetriable("nav[aria-label='Пагинация']");
-            if (!element.HasValue) return [];
-            IElementHandle[] paginationElements = await element.Value.GetElements("li");
-            if (paginationElements.Length == 0) return [];
-            return paginationElements;
+            ProcessingParserLink link = links[i];
+            
+            IExtractPagedUrlsCommand command = new ExtractPagedUrlsCommand(() => browser.GetPage(), bypassFactory)
+                .UseLogging(logger);
+            
+            links[i] = await ProcessPagedUrlExtractionFromParserLink(link, command, session);
         }
-
-        private static async Task<int> GetCurrentPageFromPaginationContainer(IElementHandle[] elements)
+        
+        await links.UpdateMany(session);
+        await browser.DestroyAsync();
+    }
+    
+    private static async Task<ProcessingParserLink> ProcessPagedUrlExtractionFromParserLink(
+        ProcessingParserLink link, 
+        IExtractPagedUrlsCommand command, 
+        NpgSqlSession session)
+    {
+        try
         {
-            int currentPage = 0;
-            foreach (IElementHandle element in elements)
-            {
-                Maybe<IElementHandle> selectedPage = await element.GetElementRetriable("span[aria-current='page']");
-                if (!selectedPage.HasValue) continue;
-                Maybe<IElementHandle> pageNumberElement = await selectedPage.Value.GetElementRetriable("span.styles-module-text-Z0vDE");
-                if (!pageNumberElement.HasValue) continue;
-                Maybe<string> pageNumberText = await pageNumberElement.Value.GetElementInnerText();
-                if (!pageNumberText.HasValue) continue;
-                currentPage = int.Parse(pageNumberText.Value);
-                break;
-            }
-
-            return currentPage;
+            AvitoCataloguePage[] pages = await command.Extract(link.Url);
+            await pages.AddMany(session);
+            link.Marker.MarkProcessed();
         }
-
-        private static async Task<int> GetMaxPageFromPaginationContainer(IElementHandle[] elements)
+        catch (Exception)
         {
-            int maxPage = 0;
-            foreach (IElementHandle element in elements)
-            {
-                Maybe<IElementHandle> pageNumberElement = await element.GetElementRetriable("span.styles-module-text-Z0vDE");
-                if (!pageNumberElement.HasValue) continue;
-                Maybe<string> pageNumberText = await pageNumberElement.Value.GetElementInnerText();
-                if (!pageNumberText.HasValue) continue;
-                if (!int.TryParse(pageNumberText.Value, out int maxPageValue)) continue;
-                if (maxPage < maxPageValue) maxPage = maxPageValue;
-            }
-
-            return maxPage;
+            link.Counter.Increase();
         }
+        
+        return link;
+    }
 
-        private static AvitoCataloguePage[] CreateCataloguePages(
-            string originUrl,
-            int currentPage,
-            int maxPage
-        )
+    private static async Task FinishTransaction(NpgSqlSession session, Serilog.ILogger logger, CancellationToken ct)
+    {
+        try
         {
-            int pageCounter = currentPage;
-            List<AvitoCataloguePage> pages = new(pageCounter + 1);
-            while (pageCounter <= maxPage)
-            {
-                string urlValue = $"{originUrl}&p={pageCounter}";
-                AvitoCataloguePage page = AvitoCataloguePage.New(urlValue);
-                pages.Add(page);
-                pageCounter++;
-            }
-
-            return [.. pages];
+            await session.UnsafeCommit(ct);
+        }
+        catch (Exception ex)
+        {
+            logger.Error(ex, "Error at committing transaction.");
         }
     }
 }

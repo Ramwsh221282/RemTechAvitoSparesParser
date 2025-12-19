@@ -1,14 +1,11 @@
-using AvitoSparesParser.CatalogueParsing;
-using AvitoSparesParser.CatalogueParsing.Extensions;
-using AvitoSparesParser.Common;
-using AvitoSparesParser.ConcreteItemParsing.AvitoSpares;
-using AvitoSparesParser.ConcreteItemParsing.AvitoSpares.Extensions;
-using AvitoSparesParser.ConcreteItemParsing.AvitoWebPages;
+using AvitoSparesParser.AvitoSpareContext;
+using AvitoSparesParser.AvitoSpareContext.Extensions;
+using AvitoSparesParser.Commands.ExtractConcretePageItem;
 using AvitoSparesParser.ParsingStages.Extensions;
 using ParsingSDK.Parsing;
-using ParsingSDK.TextProcessing;
 using PuppeteerSharp;
 using RemTech.SharedKernel.Infrastructure.NpgSql;
+using ILogger = Serilog.ILogger;
 
 namespace AvitoSparesParser.ParsingStages.Processes;
 
@@ -18,76 +15,97 @@ public static class ConcreteItemExtractingProcess
     {
         public static ParserStageProcess ConcreteItems => async (deps, ct) =>
         {
-            var logger = deps.Logger.ForContext<ParserStageProcess>();
+            ILogger logger = deps.Logger.ForContext<ParserStageProcess>();
             await using NpgSqlSession session = new(deps.NpgSql);
             await session.UseTransaction(ct);
-
-            ParsingStageQuery query = new(Name: ParsingStageConstants.CONCRETE_ITEMS, WithLock: true);
-            var stage = await ParsingStage.GetStage(session, query, ct);
+            
+            Maybe<ParsingStage> stage = await GetConcreteItemsStage(session, ct);
             if (!stage.HasValue) return;
-
-            AvitoCatalogueSpareQuery spareQuery = new(true, 5, true, 20);
-            var spares = await AvitoCatalogueSpare.GetMany(session, spareQuery, ct);
-            if (spares.Length == 0)
+            
+            AvitoSpare[] catalogueSpares = await GetAvitoCatalogueItems(session, ct);
+            if (CanSwitchNextStage(catalogueSpares))
             {
-                var finalization = stage.Value.ToFinalizationStage();
-                await finalization.Update(session, ct);
-                await session.UnsafeCommit(ct);
-                logger.Information("Switched to finalization stage.");
+                await SwitchNextStage(stage.Value, session, logger, ct);
                 return;
             }
-
-            IBrowser browser = await deps.Browsers.ProvideBrowser(false);
-            ITextTransformer textTransformer = deps.TextTransformerBuilder
-                .UsePunctuationCleaner()
-                .UseNewLinesCleaner()
-                .UseSpacesCleaner()
-                .Build();
-
-            AvitoSpareRequirements requirements = new(AsyncSparePropertyFactory<AvitoSpareWebPage>.TitleRequirement,
-                AsyncSparePropertyFactory<AvitoSpareWebPage>.IsNdsRequirement,
-                AsyncSparePropertyFactory<AvitoSpareWebPage>.OemRequirement,
-                AsyncSparePropertyFactory<AvitoSpareWebPage>.PriceRequirement,
-                AsyncSparePropertyFactory<AvitoSpareWebPage>.TypeRequirement,
-                AsyncSparePropertyFactory<AvitoSpareWebPage>.WithTextTransforming(textTransformer, AsyncSparePropertyFactory<AvitoSpareWebPage>.AddressRequirement));
-
-            List<AvitoSpare> results = [];
             
-            for (var i = 0; i < spares.Length; i++)
-            {
-                AvitoCatalogueSpare catalogueItem = spares[i];
-
-                try
-                {
-                    AvitoSpareConstructionDependencies constructionDeps = new(catalogueItem, browser, deps.Bypasses);
-                    Maybe<AvitoSpare> spare = await AvitoSpare.TryExtract(constructionDeps, requirements);
-                    if (spare.HasValue) results.Add(spare.Value);
-                    IHasProcessedMarker.MarkProcessed(catalogueItem);
-                }
-                catch (Exception ex)
-                {
-                    logger.Error(ex, "Failed to parse concrete item with url: {Url}. Attempt: {Attempt}",
-                        catalogueItem.Metadata.Url, catalogueItem.Counter.Value);
-                    IHasRetryCounter.Increase(catalogueItem);
-                }
-                finally
-                {
-                    spares[i] = catalogueItem;
-                }
-            }
-            
-            await spares.UpdateMany(session);
-            await results.PersistMany(session);
-
-            try
-            {
-                await session.UnsafeCommit(ct);
-                logger.Information("Parsed {0} concrete items.", results.Count);
-            }
-            catch(Exception ex)
-            {
-                logger.Error(ex, "Failed to commit transaction");
-            }
+            await ProcessConcreteItemsExtraction(catalogueSpares, deps, session);
+            await FinishTransaction(session, logger, ct);
         };
+    }
+    
+    private static async Task<Maybe<ParsingStage>> GetConcreteItemsStage(NpgSqlSession session, CancellationToken ct)
+    {
+        ParsingStageQuery query = new(Name: ParsingStageConstants.CONCRETE_ITEMS, WithLock: true);
+        Maybe<ParsingStage> stage = await ParsingStage.GetStage(session, query, ct);
+        return stage;
+    }
+
+    private static async Task<AvitoSpare[]> GetAvitoCatalogueItems(NpgSqlSession session, CancellationToken ct)
+    {
+        AvitoSpareQuery query = new(CatalogueOnly: true, WithLock: true, Limit: 50, RetryCountThreshold: 10);
+        return await AvitoSpare.Query(session, query, ct);
+    }
+
+    private static bool CanSwitchNextStage(AvitoSpare[] spares)
+    {
+        return spares.Length == 0;
+    }
+    
+    private static async Task SwitchNextStage(ParsingStage stage, NpgSqlSession session, ILogger logger, CancellationToken ct)
+    {
+        ParsingStage finalization = stage.ToFinalizationStage();
+        await finalization.Update(session, ct);
+        await session.UnsafeCommit(ct);
+        logger.Information("Switched to {Stage} stage.", finalization.Name);
+    }
+
+    private static async Task ProcessConcreteItemsExtraction(AvitoSpare[] spares, ParserStageDependencies deps, NpgSqlSession session)
+    {
+        IBrowser browser = await deps.Browsers.ProvideBrowser();
+        for (int i = 0; i < spares.Length; i++)
+        {
+            AvitoSpare spare = spares[i];
+            
+            IExtractConcretePageItemCommand command = new ExtractConcretePageItemCommand(() => browser.GetPage(), deps.Bypasses)
+                .UseLogging(deps.Logger);
+            
+            spares[i] = await ExtractConcreteSpareFromCatalogueSpare(command, spare);
+        }
+        await spares.PersistAsConcreteRepresentationMany(session);
+        await browser.DestroyAsync();
+    }
+
+    private static async Task<AvitoSpare> ExtractConcreteSpareFromCatalogueSpare(
+        IExtractConcretePageItemCommand command,
+        AvitoSpare spare
+        )
+    {
+        try
+        {
+            spare = await command.Extract(spare);
+            return spare.MarkProcessed();
+        }
+        catch(EvaluationFailedException)
+        {
+            return spare;
+        }
+        catch (Exception)
+        {
+            return spare.IncreaseRetryAmount();
+        }
+    }
+
+    private static async Task FinishTransaction(NpgSqlSession session, ILogger logger, CancellationToken ct)
+    {
+        try
+        {
+            await session.UnsafeCommit(ct);
+            logger.Information("Session finished successfully.");
+        }
+        catch(Exception ex)
+        {
+            logger.Error(ex, "Failed to commit transaction");
+        }
     }
 }

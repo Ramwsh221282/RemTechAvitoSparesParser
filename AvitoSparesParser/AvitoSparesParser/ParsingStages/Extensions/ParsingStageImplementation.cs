@@ -18,5 +18,10 @@ public static class ParsingStageImplementation
         {
             return stage with { Name = ParsingStageConstants.FINALIZATION_STAGE };
         }
+
+        public ParsingStage ToEmptyStage()
+        {
+            return stage with { Name = ParsingStageConstants.EMPTY };
+        }
     }
 }

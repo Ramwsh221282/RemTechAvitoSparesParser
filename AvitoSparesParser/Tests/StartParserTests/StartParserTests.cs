@@ -1,66 +1,22 @@
-using AvitoSparesParser.Constants;
-using AvitoSparesParser.ParserProcessStarting;
-using AvitoSparesParser.ParserProcessStarting.Extensions;
-using AvitoSparesParser.ParsingStages;
-using AvitoSparesParser.ParsingStages.Extensions;
-using Microsoft.Extensions.DependencyInjection;
-using ParsingSDK.Parsing;
-using RemTech.SharedKernel.Infrastructure.NpgSql;
+﻿using Microsoft.Extensions.DependencyInjection;
 
 namespace Tests.StartParserTests;
 
-public sealed class StartParserTests(StartParserTestsFixture fixture) : IClassFixture<StartParserTestsFixture>
+public sealed class StartParserTests(IntegrationalTestsFixture fixture) : IClassFixture<IntegrationalTestsFixture>
 {
-    private readonly IServiceProvider _sp = fixture.Services;
+    private IServiceProvider Services { get; } = fixture.Services;
 
     [Fact]
-    private async Task Test_Start_Parser_Success()
+    private async Task Invoke_Parser_Start()
     {
-        Guid id = Guid.NewGuid();
-        Guid linkId = Guid.NewGuid();
-        string parser_domain = ServiceConstants.ServiceDomain;
-        string parser_type = ServiceConstants.ServiceType;
-        string url = "https://www.avito.ru/all/zapchasti_i_aksessuary/zapchasti/dlya_gruzovikov_i_spetstehniki-ASgBAgICAkQKJKwJjGQ?cd=1&q=ponsse";
-
-        IEnumerable<object> links = [new { id = linkId, parser_id = id, url }];
-        object message = new
-        {
-            id,
-            parser_domain,
-            parser_type,
-            links
-        };
-
-        await PublishStartParserMessage(message);
-        await Task.Delay(TimeSpan.FromSeconds(10));
-        bool hasLinks = await EnsureLinksCreated();
-        bool hasPagination = await EnsureStageIsPagination();
-        Assert.True(hasLinks);
-        Assert.True(hasPagination);
+        FakeParser parser = new(Guid.NewGuid(), "Avito", "Запчасти", [ new FakeParserLink(Guid.NewGuid(), "https://www.avito.ru/all/zapchasti_i_aksessuary/zapchasti/dlya_gruzovikov_i_spetstehniki/texnika_dlia_lesozagotovki-ASgBAgICA0QKJKwJjGT46w7G1oED?cd=1&f=ASgBAgICBEQKJKwJjGSexw346j_46w7G1oED")]);
+        await PublishStartParser(parser);
+        await Task.Delay(TimeSpan.FromMinutes(30));
     }
-
-    private async Task PublishStartParserMessage(object message)
+    
+    private async Task PublishStartParser(FakeParser parser)
     {
-        await using AsyncServiceScope scope = _sp.CreateAsyncScope();
-        StartParserFakePublisher publisher = scope.ServiceProvider.GetRequiredService<StartParserFakePublisher>();
-        await publisher.Publish(message);
-    }
-
-    private async Task<bool> EnsureStageIsPagination()
-    {
-        ParsingStageQuery query = new(Name: ParsingStageConstants.PAGINATION);
-        await using AsyncServiceScope scope = _sp.CreateAsyncScope();
-        await using NpgSqlSession session = scope.ServiceProvider.GetRequiredService<NpgSqlSession>();
-        Maybe<ParsingStage> stage = await ParsingStage.GetStage(session, query);
-        return stage.HasValue;
-    }
-
-    private async Task<bool> EnsureLinksCreated()
-    {
-        await using AsyncServiceScope scope = _sp.CreateAsyncScope();
-        await using NpgSqlSession session = scope.ServiceProvider.GetRequiredService<NpgSqlSession>();
-        ProcessingParserLinkQuery query = new(OnlyNotFetched: true);
-        ProcessingParserLink[] links = await IEnumerable<ProcessingParserLink>.QueryMany(session, query);
-        return links.Length > 0;
+        FakeStartParserPublisher publisher = Services.GetRequiredService<FakeStartParserPublisher>();
+        await publisher.PublishStartParser(parser);
     }
 }

@@ -15,7 +15,7 @@ public sealed class ParsingStageBackgroundInvoker(ParserStageDependencies depend
         Maybe<ParsingStage> stage = await GetStage(context.CancellationToken);
         if (stage.HasValue == false) return;
 
-        ParserStageProcess process = ParserStageProcessRouter.ChooseRightOne(stage.Value);
+        ParserStageProcess process = ParserStageProcessRouter.ResolveStageByName(stage.Value);
         await process(dependencies, context.CancellationToken);
     }
 
